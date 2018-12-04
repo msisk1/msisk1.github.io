@@ -150,7 +150,7 @@ $(document).ready(function () {
 <p>Now you can use this string as the coordinate system for another layer when you create a new spatial layer from a table</p>
 <pre class="r"><code>facilities.spatial &lt;- SpatialPointsDataFrame(coords = facilities.points[,c(&quot;Lon&quot;,&quot;Lat&quot;)], data = facilities.points, proj4string = CRS(proj4string(districts)))</code></pre>
 <p>Alternatively, you can also assign the value from one proj4string() directly to another.</p>
-<pre class="rassign2"><code>proj4string(districts) &lt;- proj4string(facilities.spatial)</code></pre>
+<pre class="r"><code>proj4string(districts) &lt;- proj4string(facilities.spatial)</code></pre>
 <p>Again. this only works if the coordinate systems are the same, but the strings used to define them are slightly different. If they are totally differenct coordinate systems (like lat/long for one and google’s Web Mercator for another), you would use the spTransform() function to reproject, or convert, the cordinated from one to the other. Just ask if you run into this problem (I think everything should be fine with the data I have provided)</p>
 </div>
 <div id="counting-the-points-in-polygons" class="section level2">
@@ -184,6 +184,11 @@ head(ov)</code></pre>
 <pre><code>## 
 ## 1301 1302 1303 1304 1305 1306 
 ##    6    3    4    1    2    2</code></pre>
+</div>
+<div id="joining-polygons-onto-points" class="section level2">
+<h2>Joining polygons onto points</h2>
+<p>Similarly, we can take this table of which polygon each point is in and put it back into the dataframe for the points. Since the rows are ordered the same, it is as simple as assigning, though we could do it with a merge as well. This would then make it very easy to filter the points based on their district in shiny.</p>
+<pre class="r"><code>facilities.spatial@data$Dist &lt;- ov$Dist</code></pre>
 </div>
 <div id="calculating-centroids-for-polygons" class="section level2">
 <h2>Calculating centroids for polygons</h2>
