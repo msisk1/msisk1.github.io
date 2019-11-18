@@ -246,7 +246,7 @@ summary {
 <h3>Downloading Basemaps</h3>
 <p>If it is hard to visualize where there disctricts or points are, you can also download a static version of one of the common webmaps to use as a basemap. using get_map from the ggmap package will basically cache a single image for you to use. Do note that these basemap layers are usually free to use for academic purposes, but you should look into their terms of service before using them in commercial applications. Make sure your api key (discussed in the Geocoding and Routing Document) is loaded.</p>
 <p>When doing this with sf objects, you need to add <em>inherit.aes = F</em> to solve some problems with different cordinate systems.</p>
-<pre class="r"><code>register_google(key = &quot;AIzaSyAe2Brb2eyF0ZeyEncpk_36JQkC-o9Xyvg&quot;)
+<pre class="r"><code>register_google(key = YOUR_KEY_HERE)
 
 base.map &lt;- get_map(&quot;South Bend, IN&quot;, zoom = 12, maptype = &quot;roadmap&quot;)
 ggmap(base.map)+
