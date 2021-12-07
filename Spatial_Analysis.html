@@ -183,7 +183,7 @@ pre code {
 
 districts &lt;- st_read(&quot;Week03\\Demonstrations\\SampleData\\City_Council_Districts.shp&quot;)</code></pre>
 <pre><code>## Reading layer `City_Council_Districts&#39; from data source 
-##   `C:\Users\msisk1\Documents\GIT\Teaching\--Data-Viz-2021-Fall\Week03\Demonstrations\SampleData\City_Council_Districts.shp&#39; 
+##   `C:\Users\msisk1\Documents\GIT\Teaching\-Data-Viz-2020-Fall\Week03\Demonstrations\SampleData\City_Council_Districts.shp&#39; 
 ##   using driver `ESRI Shapefile&#39;
 ## Simple feature collection with 6 features and 14 fields
 ## Geometry type: MULTIPOLYGON
@@ -258,13 +258,24 @@ st_crs(districs.google)</code></pre>
 ##         BBOX[-85.06,-180,85.06,180]],
 ##     ID[&quot;EPSG&quot;,3857]]</code></pre>
 </div>
+<div id="s2_geography_from_wbk-error" class="section level2">
+<h2>s2_geography_from_wbk Error</h2>
+<p>There is a new way that polygons are stored in R and it has rendered some old data invalid. If you are running any tools (like the ones below) you may come across the following error</p>
+<pre class="r"><code>ov &lt;- st_intersects(districts, facilities.spatial)</code></pre>
+<pre><code>## Error in s2_geography_from_wkb(x, oriented = oriented, check = check): Evaluation error: Found 1 feature with invalid spherical geometry.
+## [1] Loop 0 is not valid: Edge 585 has duplicate vertex with edge 648.</code></pre>
+<p>If so, you can either revert to the original geometry type:</p>
+<pre class="r"><code>sf_use_s2(FALSE)</code></pre>
+<pre><code>## Spherical geometry (s2) switched off</code></pre>
+<p>Or fix the errors with <em>st_make_valid()</em></p>
+<pre class="r"><code>districts &lt;- st_make_valid(districts)</code></pre>
+</div>
 <div id="counting-the-points-in-polygons" class="section level2">
 <h2>Counting the points in Polygons</h2>
 <p>To count the number of points within each polygon we can use the st_intersects() function. This creates a list of the polygon that each point falls within (blank). Note that the only remaining information from the points is the row.name, which can be used to merge or cbind the info back onto the original spatial data frame. In this case, a lot of the points are not within a polygon (hence the NAs)</p>
-<pre class="r"><code># districts &lt;- st_make_valid(districts)
-
-ov &lt;- st_intersects(districts, facilities.spatial)
-ov</code></pre>
+<pre class="r"><code>ov &lt;- st_intersects(districts, facilities.spatial)</code></pre>
+<pre><code>## although coordinates are longitude/latitude, st_intersects assumes that they are planar</code></pre>
+<pre class="r"><code>ov</code></pre>
 <pre><code>## Sparse geometry binary predicate list of length 6, where the predicate
 ## was `intersects&#39;
 ##  1: 9, 11, 23, 38, 42, 45
@@ -278,8 +289,10 @@ ov</code></pre>
 <div id="joining-polygons-onto-points" class="section level2">
 <h2>Joining polygons onto points</h2>
 <p>Here is an example of doing this with the st_join function. This would then make it very easy to filter the points based on their district in shiny.The select is just removing all of the extra columns from the districts table.</p>
-<pre class="r"><code>ov &lt;- st_join(x = facilities.spatial, y = districts %&gt;% select(Dist))
-ov %&gt;% 
+<pre class="r"><code>ov &lt;- st_join(x = facilities.spatial, y = districts %&gt;% select(Dist))</code></pre>
+<pre><code>## although coordinates are longitude/latitude, st_intersects assumes that they are planar
+## although coordinates are longitude/latitude, st_intersects assumes that they are planar</code></pre>
+<pre class="r"><code>ov %&gt;% 
   st_set_geometry(NULL)%&gt;% #just removing the geometry
   group_by(Dist)%&gt;%
   summarize(facilites = n())</code></pre>
@@ -300,6 +313,9 @@ ov %&gt;%
 <pre class="r"><code>districts.center &lt;- st_centroid(districts)</code></pre>
 <pre><code>## Warning in st_centroid.sf(districts): st_centroid assumes attributes are
 ## constant over geometries of x</code></pre>
+<pre><code>## Warning in st_centroid.sfc(st_geometry(x), of_largest_polygon =
+## of_largest_polygon): st_centroid does not give correct centroids for longitude/
+## latitude data</code></pre>
 </div>
 </div>
 
