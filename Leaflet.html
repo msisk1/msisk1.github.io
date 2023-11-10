@@ -516,20 +516,18 @@ color: #d14;
       document.body.style.height = "100%";
       document.documentElement.style.width = "100%";
       document.documentElement.style.height = "100%";
-      if (cel) {
-        cel.style.position = "absolute";
-        var pad = unpackPadding(sizing.padding);
-        cel.style.top = pad.top + "px";
-        cel.style.right = pad.right + "px";
-        cel.style.bottom = pad.bottom + "px";
-        cel.style.left = pad.left + "px";
-        el.style.width = "100%";
-        el.style.height = "100%";
-      }
+      cel.style.position = "absolute";
+      var pad = unpackPadding(sizing.padding);
+      cel.style.top = pad.top + "px";
+      cel.style.right = pad.right + "px";
+      cel.style.bottom = pad.bottom + "px";
+      cel.style.left = pad.left + "px";
+      el.style.width = "100%";
+      el.style.height = "100%";
 
       return {
-        getWidth: function() { return cel.offsetWidth; },
-        getHeight: function() { return cel.offsetHeight; }
+        getWidth: function() { return cel.getBoundingClientRect().width; },
+        getHeight: function() { return cel.getBoundingClientRect().height; }
       };
 
     } else {
@@ -537,8 +535,8 @@ color: #d14;
       el.style.height = px(sizing.height);
 
       return {
-        getWidth: function() { return el.offsetWidth; },
-        getHeight: function() { return el.offsetHeight; }
+        getWidth: function() { return cel.getBoundingClientRect().width; },
+        getHeight: function() { return cel.getBoundingClientRect().height; }
       };
     }
   }
@@ -762,8 +760,8 @@ color: #d14;
 
           elementData(el, "initialized", true);
           if (bindingDef.initialize) {
-            var result = bindingDef.initialize(el, el.offsetWidth,
-              el.offsetHeight);
+            var rect = el.getBoundingClientRect();
+            var result = bindingDef.initialize(el, rect.width, rect.height);
             elementData(el, "init_result", result);
           }
         }
@@ -805,29 +803,30 @@ color: #d14;
       forEach(matches, function(el) {
         var sizeObj = initSizing(el, binding);
 
+        var getSize = function(el) {
+          if (sizeObj) {
+            return {w: sizeObj.getWidth(), h: sizeObj.getHeight()}
+          } else {
+            var rect = el.getBoundingClientRect();
+            return {w: rect.width, h: rect.height}
+          }
+        };
+
         if (hasClass(el, "html-widget-static-bound"))
           return;
         el.className = el.className + " html-widget-static-bound";
 
         var initResult;
         if (binding.initialize) {
-          initResult = binding.initialize(el,
-            sizeObj ? sizeObj.getWidth() : el.offsetWidth,
-            sizeObj ? sizeObj.getHeight() : el.offsetHeight
-          );
+          var size = getSize(el);
+          initResult = binding.initialize(el, size.w, size.h);
           elementData(el, "init_result", initResult);
         }
 
         if (binding.resize) {
-          var lastSize = {
-            w: sizeObj ? sizeObj.getWidth() : el.offsetWidth,
-            h: sizeObj ? sizeObj.getHeight() : el.offsetHeight
-          };
+          var lastSize = getSize(el);
           var resizeHandler = function(e) {
-            var size = {
-              w: sizeObj ? sizeObj.getWidth() : el.offsetWidth,
-              h: sizeObj ? sizeObj.getHeight() : el.offsetHeight
-            };
+            var size = getSize(el);
             if (size.w === 0 && size.h === 0)
               return;
             if (size.w === lastSize.w && size.h === lastSize.h)
@@ -1129,7 +1128,6 @@ color: #d14;
     return result;
   }
 })();
-
 </script>
 <style type="text/css">.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane > svg,.leaflet-pane > canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer {position: absolute;left: 0;top: 0;}.leaflet-container {overflow: hidden;}.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow {-webkit-user-select: none;-moz-user-select: none;user-select: none;-webkit-user-drag: none;}.leaflet-safari .leaflet-tile {image-rendering: -webkit-optimize-contrast;}.leaflet-safari .leaflet-tile-container {width: 1600px;height: 1600px;-webkit-transform-origin: 0 0;}.leaflet-marker-icon,.leaflet-marker-shadow {display: block;}.leaflet-container .leaflet-overlay-pane svg,.leaflet-container .leaflet-marker-pane img,.leaflet-container .leaflet-shadow-pane img,.leaflet-container .leaflet-tile-pane img,.leaflet-container img.leaflet-image-layer {max-width: none !important;max-height: none !important;}.leaflet-container.leaflet-touch-zoom {-ms-touch-action: pan-x pan-y;touch-action: pan-x pan-y;}.leaflet-container.leaflet-touch-drag {-ms-touch-action: pinch-zoom;touch-action: none;touch-action: pinch-zoom;}.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {-ms-touch-action: none;touch-action: none;}.leaflet-container {-webkit-tap-highlight-color: transparent;}.leaflet-container a {-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);}.leaflet-tile {filter: inherit;visibility: hidden;}.leaflet-tile-loaded {visibility: inherit;}.leaflet-zoom-box {width: 0;height: 0;-moz-box-sizing: border-box;box-sizing: border-box;z-index: 800;}.leaflet-overlay-pane svg {-moz-user-select: none;}.leaflet-pane { z-index: 400; }.leaflet-tile-pane { z-index: 200; }.leaflet-overlay-pane { z-index: 400; }.leaflet-shadow-pane { z-index: 500; }.leaflet-marker-pane { z-index: 600; }.leaflet-tooltip-pane { z-index: 650; }.leaflet-popup-pane { z-index: 700; }.leaflet-map-pane canvas { z-index: 100; }.leaflet-map-pane svg { z-index: 200; }.leaflet-vml-shape {width: 1px;height: 1px;}.lvml {behavior: url(#default#VML);display: inline-block;position: absolute;}.leaflet-control {position: relative;z-index: 800;pointer-events: visiblePainted; pointer-events: auto;}.leaflet-top,.leaflet-bottom {position: absolute;z-index: 1000;pointer-events: none;}.leaflet-top {top: 0;}.leaflet-right {right: 0;}.leaflet-bottom {bottom: 0;}.leaflet-left {left: 0;}.leaflet-control {float: left;clear: both;}.leaflet-right .leaflet-control {float: right;}.leaflet-top .leaflet-control {margin-top: 10px;}.leaflet-bottom .leaflet-control {margin-bottom: 10px;}.leaflet-left .leaflet-control {margin-left: 10px;}.leaflet-right .leaflet-control {margin-right: 10px;}.leaflet-fade-anim .leaflet-tile {will-change: opacity;}.leaflet-fade-anim .leaflet-popup {opacity: 0;-webkit-transition: opacity 0.2s linear;-moz-transition: opacity 0.2s linear;-o-transition: opacity 0.2s linear;transition: opacity 0.2s linear;}.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {opacity: 1;}.leaflet-zoom-animated {-webkit-transform-origin: 0 0;-ms-transform-origin: 0 0;transform-origin: 0 0;}.leaflet-zoom-anim .leaflet-zoom-animated {will-change: transform;}.leaflet-zoom-anim .leaflet-zoom-animated {-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);-moz-transition: -moz-transform 0.25s cubic-bezier(0,0,0.25,1);-o-transition: -o-transform 0.25s cubic-bezier(0,0,0.25,1);transition: transform 0.25s cubic-bezier(0,0,0.25,1);}.leaflet-zoom-anim .leaflet-tile,.leaflet-pan-anim .leaflet-tile {-webkit-transition: none;-moz-transition: none;-o-transition: none;transition: none;}.leaflet-zoom-anim .leaflet-zoom-hide {visibility: hidden;}.leaflet-interactive {cursor: pointer;}.leaflet-grab {cursor: -webkit-grab;cursor: -moz-grab;}.leaflet-crosshair,.leaflet-crosshair .leaflet-interactive {cursor: crosshair;}.leaflet-popup-pane,.leaflet-control {cursor: auto;}.leaflet-dragging .leaflet-grab,.leaflet-dragging .leaflet-grab .leaflet-interactive,.leaflet-dragging .leaflet-marker-draggable {cursor: move;cursor: -webkit-grabbing;cursor: -moz-grabbing;}.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-image-layer,.leaflet-pane > svg path,.leaflet-tile-container {pointer-events: none;}.leaflet-marker-icon.leaflet-interactive,.leaflet-image-layer.leaflet-interactive,.leaflet-pane > svg path.leaflet-interactive {pointer-events: visiblePainted; pointer-events: auto;}.leaflet-container {background: #ddd;outline: 0;}.leaflet-container a {color: #0078A8;}.leaflet-container a.leaflet-active {outline: 2px solid orange;}.leaflet-zoom-box {border: 2px dotted #38f;background: rgba(255,255,255,0.5);}.leaflet-container {font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;}.leaflet-bar {box-shadow: 0 1px 5px rgba(0,0,0,0.65);border-radius: 4px;}.leaflet-bar a,.leaflet-bar a:hover {background-color: #fff;border-bottom: 1px solid #ccc;width: 26px;height: 26px;line-height: 26px;display: block;text-align: center;text-decoration: none;color: black;}.leaflet-bar a,.leaflet-control-layers-toggle {background-position: 50% 50%;background-repeat: no-repeat;display: block;}.leaflet-bar a:hover {background-color: #f4f4f4;}.leaflet-bar a:first-child {border-top-left-radius: 4px;border-top-right-radius: 4px;}.leaflet-bar a:last-child {border-bottom-left-radius: 4px;border-bottom-right-radius: 4px;border-bottom: none;}.leaflet-bar a.leaflet-disabled {cursor: default;background-color: #f4f4f4;color: #bbb;}.leaflet-touch .leaflet-bar a {width: 30px;height: 30px;line-height: 30px;}.leaflet-touch .leaflet-bar a:first-child {border-top-left-radius: 2px;border-top-right-radius: 2px;}.leaflet-touch .leaflet-bar a:last-child {border-bottom-left-radius: 2px;border-bottom-right-radius: 2px;}.leaflet-control-zoom-in,.leaflet-control-zoom-out {font: bold 18px 'Lucida Console', Monaco, monospace;text-indent: 1px;}.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out {font-size: 22px;}.leaflet-control-layers {box-shadow: 0 1px 5px rgba(0,0,0,0.4);background: #fff;border-radius: 5px;}.leaflet-control-layers-toggle {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAQAAAADQ4RFAAACf0lEQVR4AY1UM3gkARTePdvdoTxXKc+qTl3aU5U6b2Kbkz3Gtq3Zw6ziLGNPzrYx7946Tr6/ee/XeCQ4D3ykPtL5tHno4n0d/h3+xfuWHGLX81cn7r0iTNzjr7LrlxCqPtkbTQEHeqOrTy4Yyt3VCi/IOB0v7rVC7q45Q3Gr5K6jt+3Gl5nCoDD4MtO+j96Wu8atmhGqcNGHObuf8OM/x3AMx38+4Z2sPqzCxRFK2aF2e5Jol56XTLyggAMTL56XOMoS1W4pOyjUcGGQdZxU6qRh7B9Zp+PfpOFlqt0zyDZckPi1ttmIp03jX8gyJ8a/PG2yutpS/Vol7peZIbZcKBAEEheEIAgFbDkz5H6Zrkm2hVWGiXKiF4Ycw0RWKdtC16Q7qe3X4iOMxruonzegJzWaXFrU9utOSsLUmrc0YjeWYjCW4PDMADElpJSSQ0vQvA1Tm6/JlKnqFs1EGyZiFCqnRZTEJJJiKRYzVYzJck2Rm6P4iH+cmSY0YzimYa8l0EtTODFWhcMIMVqdsI2uiTvKmTisIDHJ3od5GILVhBCarCfVRmo4uTjkhrhzkiBV7SsaqS+TzrzM1qpGGUFt28pIySQHR6h7F6KSwGWm97ay+Z+ZqMcEjEWebE7wxCSQwpkhJqoZA5ivCdZDjJepuJ9IQjGGUmuXJdBFUygxVqVsxFsLMbDe8ZbDYVCGKxs+W080max1hFCarCfV+C1KATwcnvE9gRRuMP2prdbWGowm1KB1y+zwMMENkM755cJ2yPDtqhTI6ED1M/82yIDtC/4j4BijjeObflpO9I9MwXTCsSX8jWAFeHr05WoLTJ5G8IQVS/7vwR6ohirYM7f6HzYpogfS3R2OAAAAAElFTkSuQmCC);width: 36px;height: 36px;}.leaflet-retina .leaflet-control-layers-toggle {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADQAAAA0CAQAAABvcdNgAAAEsklEQVR4AWL4TydIhpZK1kpWOlg0w3ZXP6D2soBtG42jeI6ZmQTHzAxiTbSJsYLjO9HhP+WOmcuhciVnmHVQcJnp7DFvScowZorad/+V/fVzMdMT2g9Cv9guXGv/7pYOrXh2U+RRR3dSd9JRx6bIFc/ekqHI29JC6pJ5ZEh1yWkhkbcFeSjxgx3L2m1cb1C7bceyxA+CNjT/Ifff+/kDk2u/w/33/IeCMOSaWZ4glosqT3DNnNZQ7Cs58/3Ce5HL78iZH/vKVIaYlqzfdLu8Vi7dnvUbEza5Idt36tquZFldl6N5Z/POLof0XLK61mZCmJSWjVF9tEjUluu74IUXvgttuVIHE7YxSkaYhJZam7yiM9Pv82JYfl9nptxZaxMJE4YSPty+vF0+Y2up9d3wwijfjZbabqm/3bZ9ecKHsiGmRflnn1MW4pjHf9oLufyn2z3y1D6n8g8TZhxyzipLNPnAUpsOiuWimg52psrTZYnOWYNDTMuWBWa0tJb4rgq1UvmutpaYEbZlwU3CLJm/ayYjHW5/h7xWLn9Hh1vepDkyf7dE7MtT5LR4e7yYpHrkhOUpEfssBLq2pPhAqoSWKUkk7EDqkmK6RrCEzqDjhNDWNE+XSMvkJRDWlZTmCW0l0PHQGRZY5t1L83kT0Y3l2SItk5JAWHl2dCOBm+fPu3fo5/3v61RMCO9Jx2EEYYhb0rmNQMX/vm7gqOEJLcXTGw3CAuRNeyaPWwjR8PRqKQ1PDA/dpv+on9Shox52WFnx0KY8onHayrJzm87i5h9xGw/tfkev0jGsQizqezUKjk12hBMKJ4kbCqGPVNXudyyrShovGw5CgxsRICxF6aRmSjlBnHRzg7Gx8fKqEubI2rahQYdR1YgDIRQO7JvQyD52hoIQx0mxa0ODtW2Iozn1le2iIRdzwWewedyZzewidueOGqlsn1MvcnQpuVwLGG3/IR1hIKxCjelIDZ8ldqWz25jWAsnldEnK0Zxro19TGVb2ffIZEsIO89EIEDvKMPrzmBOQcKQ+rroye6NgRRxqR4U8EAkz0CL6uSGOm6KQCdWjvjRiSP1BPalCRS5iQYiEIvxuBMJEWgzSoHADcVMuN7IuqqTeyUPq22qFimFtxDyBBJEwNyt6TM88blFHao/6tWWhuuOM4SAK4EI4QmFHA+SEyWlp4EQoJ13cYGzMu7yszEIBOm2rVmHUNqwAIQabISNMRstmdhNWcFLsSm+0tjJH1MdRxO5Nx0WDMhCtgD6OKgZeljJqJKc9po8juskR9XN0Y1lZ3mWjLR9JCO1jRDMd0fpYC2VnvjBSEFg7wBENc0R9HFlb0xvF1+TBEpF68d+DHR6IOWVv2BECtxo46hOFUBd/APU57WIoEwJhIi2CdpyZX0m93BZicktMj1AS9dClteUFAUNUIEygRZCtik5zSxI9MubTBH1GOiHsiLJ3OCoSZkILa9PxiN0EbvhsAo8tdAf9Seepd36lGWHmtNANTv5Jd0z4QYyeo/UEJqxKRpg5LZx6btLPsOaEmdMyxYdlc8LMaJnikDlhclqmPiQnTEpLUIZEwkRagjYkEibQErwhkTAKCLQEbUgkzJQWc/0PstHHcfEdQ+UAAAAASUVORK5CYII=);background-size: 26px 26px;}.leaflet-touch .leaflet-control-layers-toggle {width: 44px;height: 44px;}.leaflet-control-layers .leaflet-control-layers-list,.leaflet-control-layers-expanded .leaflet-control-layers-toggle {display: none;}.leaflet-control-layers-expanded .leaflet-control-layers-list {display: block;position: relative;}.leaflet-control-layers-expanded {padding: 6px 10px 6px 6px;color: #333;background: #fff;}.leaflet-control-layers-scrollbar {overflow-y: scroll;overflow-x: hidden;padding-right: 5px;}.leaflet-control-layers-selector {margin-top: 2px;position: relative;top: 1px;}.leaflet-control-layers label {display: block;}.leaflet-control-layers-separator {height: 0;border-top: 1px solid #ddd;margin: 5px -10px 5px -6px;}.leaflet-default-icon-path {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAApCAYAAADAk4LOAAAFgUlEQVR4Aa1XA5BjWRTN2oW17d3YaZtr2962HUzbDNpjszW24mRt28p47v7zq/bXZtrp/lWnXr337j3nPCe85NcypgSFdugCpW5YoDAMRaIMqRi6aKq5E3YqDQO3qAwjVWrD8Ncq/RBpykd8oZUb/kaJutow8r1aP9II0WmLKLIsJyv1w/kqw9Ch2MYdB++12Onxee/QMwvf4/Dk/Lfp/i4nxTXtOoQ4pW5Aj7wpici1A9erdAN2OH64x8OSP9j3Ft3b7aWkTg/Fm91siTra0f9on5sQr9INejH6CUUUpavjFNq1B+Oadhxmnfa8RfEmN8VNAsQhPqF55xHkMzz3jSmChWU6f7/XZKNH+9+hBLOHYozuKQPxyMPUKkrX/K0uWnfFaJGS1QPRtZsOPtr3NsW0uyh6NNCOkU3Yz+bXbT3I8G3xE5EXLXtCXbbqwCO9zPQYPRTZ5vIDXD7U+w7rFDEoUUf7ibHIR4y6bLVPXrz8JVZEql13trxwue/uDivd3fkWRbS6/IA2bID4uk0UpF1N8qLlbBlXs4Ee7HLTfV1j54APvODnSfOWBqtKVvjgLKzF5YdEk5ewRkGlK0i33Eofffc7HT56jD7/6U+qH3Cx7SBLNntH5YIPvODnyfIXZYRVDPqgHtLs5ABHD3YzLuespb7t79FY34DjMwrVrcTuwlT55YMPvOBnRrJ4VXTdNnYug5ucHLBjEpt30701A3Ts+HEa73u6dT3FNWwflY86eMHPk+Yu+i6pzUpRrW7SNDg5JHR4KapmM5Wv2E8Tfcb1HoqqHMHU+uWDD7zg54mz5/2BSnizi9T1Dg4QQXLToGNCkb6tb1NU+QAlGr1++eADrzhn/u8Q2YZhQVlZ5+CAOtqfbhmaUCS1ezNFVm2imDbPmPng5wmz+gwh+oHDce0eUtQ6OGDIyR0uUhUsoO3vfDmmgOezH0mZN59x7MBi++WDL1g/eEiU3avlidO671bkLfwbw5XV2P8Pzo0ydy4t2/0eu33xYSOMOD8hTf4CrBtGMSoXfPLchX+J0ruSePw3LZeK0juPJbYzrhkH0io7B3k164hiGvawhOKMLkrQLyVpZg8rHFW7E2uHOL888IBPlNZ1FPzstSJM694fWr6RwpvcJK60+0HCILTBzZLFNdtAzJaohze60T8qBzyh5ZuOg5e7uwQppofEmf2++DYvmySqGBuKaicF1blQjhuHdvCIMvp8whTTfZzI7RldpwtSzL+F1+wkdZ2TBOW2gIF88PBTzD/gpeREAMEbxnJcaJHNHrpzji0gQCS6hdkEeYt9DF/2qPcEC8RM28Hwmr3sdNyht00byAut2k3gufWNtgtOEOFGUwcXWNDbdNbpgBGxEvKkOQsxivJx33iow0Vw5S6SVTrpVq11ysA2Rp7gTfPfktc6zhtXBBC+adRLshf6sG2RfHPZ5EAc4sVZ83yCN00Fk/4kggu40ZTvIEm5g24qtU4KjBrx/BTTH8ifVASAG7gKrnWxJDcU7x8X6Ecczhm3o6YicvsLXWfh3Ch1W0k8x0nXF+0fFxgt4phz8QvypiwCCFKMqXCnqXExjq10beH+UUA7+nG6mdG/Pu0f3LgFcGrl2s0kNNjpmoJ9o4B29CMO8dMT4Q5ox8uitF6fqsrJOr8qnwNbRzv6hSnG5wP+64C7h9lp30hKNtKdWjtdkbuPA19nJ7Tz3zR/ibgARbhb4AlhavcBebmTHcFl2fvYEnW0ox9xMxKBS8btJ+KiEbq9zA4RthQXDhPa0T9TEe69gWupwc6uBUphquXgf+/FrIjweHQS4/pduMe5ERUMHUd9xv8ZR98CxkS4F2n3EUrUZ10EYNw7BWm9x1GiPssi3GgiGRDKWRYZfXlON+dfNbM+GgIwYdwAAAAASUVORK5CYII=);}.leaflet-container .leaflet-control-attribution {background: #fff;background: rgba(255, 255, 255, 0.7);margin: 0;}.leaflet-control-attribution,.leaflet-control-scale-line {padding: 0 5px;color: #333;}.leaflet-control-attribution a {text-decoration: none;}.leaflet-control-attribution a:hover {text-decoration: underline;}.leaflet-container .leaflet-control-attribution,.leaflet-container .leaflet-control-scale {font-size: 11px;}.leaflet-left .leaflet-control-scale {margin-left: 5px;}.leaflet-bottom .leaflet-control-scale {margin-bottom: 5px;}.leaflet-control-scale-line {border: 2px solid #777;border-top: none;line-height: 1.1;padding: 2px 5px 1px;font-size: 11px;white-space: nowrap;overflow: hidden;-moz-box-sizing: border-box;box-sizing: border-box;background: #fff;background: rgba(255, 255, 255, 0.5);}.leaflet-control-scale-line:not(:first-child) {border-top: 2px solid #777;border-bottom: none;margin-top: -2px;}.leaflet-control-scale-line:not(:first-child):not(:last-child) {border-bottom: 2px solid #777;}.leaflet-touch .leaflet-control-attribution,.leaflet-touch .leaflet-control-layers,.leaflet-touch .leaflet-bar {box-shadow: none;}.leaflet-touch .leaflet-control-layers,.leaflet-touch .leaflet-bar {border: 2px solid rgba(0,0,0,0.2);background-clip: padding-box;}.leaflet-popup {position: absolute;text-align: center;margin-bottom: 20px;}.leaflet-popup-content-wrapper {padding: 1px;text-align: left;border-radius: 12px;}.leaflet-popup-content {margin: 13px 19px;line-height: 1.4;}.leaflet-popup-content p {margin: 18px 0;}.leaflet-popup-tip-container {width: 40px;height: 20px;position: absolute;left: 50%;margin-left: -20px;overflow: hidden;pointer-events: none;}.leaflet-popup-tip {width: 17px;height: 17px;padding: 1px;margin: -10px auto 0;-webkit-transform: rotate(45deg);-moz-transform: rotate(45deg);-ms-transform: rotate(45deg);-o-transform: rotate(45deg);transform: rotate(45deg);}.leaflet-popup-content-wrapper,.leaflet-popup-tip {background: white;color: #333;box-shadow: 0 3px 14px rgba(0,0,0,0.4);}.leaflet-container a.leaflet-popup-close-button {position: absolute;top: 0;right: 0;padding: 4px 4px 0 0;border: none;text-align: center;width: 18px;height: 14px;font: 16px/14px Tahoma, Verdana, sans-serif;color: #c3c3c3;text-decoration: none;font-weight: bold;background: transparent;}.leaflet-container a.leaflet-popup-close-button:hover {color: #999;}.leaflet-popup-scrolled {overflow: auto;border-bottom: 1px solid #ddd;border-top: 1px solid #ddd;}.leaflet-oldie .leaflet-popup-content-wrapper {zoom: 1;}.leaflet-oldie .leaflet-popup-tip {width: 24px;margin: 0 auto;-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);}.leaflet-oldie .leaflet-popup-tip-container {margin-top: -1px;}.leaflet-oldie .leaflet-control-zoom,.leaflet-oldie .leaflet-control-layers,.leaflet-oldie .leaflet-popup-content-wrapper,.leaflet-oldie .leaflet-popup-tip {border: 1px solid #999;}.leaflet-div-icon {background: #fff;border: 1px solid #666;}.leaflet-tooltip {position: absolute;padding: 6px;background-color: #fff;border: 1px solid #fff;border-radius: 3px;color: #222;white-space: nowrap;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;pointer-events: none;box-shadow: 0 1px 3px rgba(0,0,0,0.4);}.leaflet-tooltip.leaflet-clickable {cursor: pointer;pointer-events: auto;}.leaflet-tooltip-top:before,.leaflet-tooltip-bottom:before,.leaflet-tooltip-left:before,.leaflet-tooltip-right:before {position: absolute;pointer-events: none;border: 6px solid transparent;background: transparent;content: "";}.leaflet-tooltip-bottom {margin-top: 6px;}.leaflet-tooltip-top {margin-top: -6px;}.leaflet-tooltip-bottom:before,.leaflet-tooltip-top:before {left: 50%;margin-left: -6px;}.leaflet-tooltip-top:before {bottom: 0;margin-bottom: -12px;border-top-color: #fff;}.leaflet-tooltip-bottom:before {top: 0;margin-top: -12px;margin-left: -6px;border-bottom-color: #fff;}.leaflet-tooltip-left {margin-left: -6px;}.leaflet-tooltip-right {margin-left: 6px;}.leaflet-tooltip-left:before,.leaflet-tooltip-right:before {top: 50%;margin-top: -6px;}.leaflet-tooltip-left:before {right: 0;margin-right: -12px;border-left-color: #fff;}.leaflet-tooltip-right:before {left: 0;margin-left: -12px;border-right-color: #fff;}</style>
 <script>/* @preserve
@@ -1144,7 +1142,7 @@ margin: 0;
 border-radius: 0;
 border: none;
 }
-.info {
+.leaflet .info {
 padding: 6px 8px;
 font: 14px/16px Arial, Helvetica, sans-serif;
 background: white;
@@ -1152,17 +1150,17 @@ background: rgba(255,255,255,0.8);
 box-shadow: 0 0 15px rgba(0,0,0,0.2);
 border-radius: 5px;
 }
-.legend {
+.leaflet .legend {
 line-height: 18px;
 color: #555;
 }
-.legend svg text {
+.leaflet .legend svg text {
 fill: #555;
 }
-.legend svg line {
+.leaflet .legend svg line {
 stroke: #555;
 }
-.legend i {
+.leaflet .legend i {
 width: 18px;
 height: 18px;
 margin-right: 4px;
@@ -2077,22 +2075,26 @@ function preventUnintendedZoomOnScroll(map) {
   });
   (0, _jquery2["default"])(document).on("mousemove", "*", function (e) {
     // Did the mouse really move?
-    if (lastScreen.x !== null && e.screenX !== lastScreen.x || e.screenY !== lastScreen.y) {
-      // It really moved. Enable zooming.
+    if (map.options.scrollWheelZoom) {
+      if (lastScreen.x !== null && e.screenX !== lastScreen.x || e.screenY !== lastScreen.y) {
+        // It really moved. Enable zooming.
+        map.scrollWheelZoom.enable();
+        lastScreen = {
+          x: null,
+          y: null
+        };
+      }
+    }
+  });
+  (0, _jquery2["default"])(document).on("mousedown", ".leaflet", function (e) {
+    // Clicking always enables zooming.
+    if (map.options.scrollWheelZoom) {
       map.scrollWheelZoom.enable();
       lastScreen = {
         x: null,
         y: null
       };
     }
-  });
-  (0, _jquery2["default"])(document).on("mousedown", ".leaflet", function (e) {
-    // Clicking always enables zooming.
-    map.scrollWheelZoom.enable();
-    lastScreen = {
-      x: null,
-      y: null
-    };
   });
 }
 
@@ -4347,7 +4349,7 @@ function asArray(value) {
 
 	L.TileLayer.Provider.providers = {
 		OpenStreetMap: {
-			url: '//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+			url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 			options: {
 				maxZoom: 19,
 				attribution:
@@ -4356,27 +4358,27 @@ function asArray(value) {
 			variants: {
 				Mapnik: {},
 				DE: {
-					url: '//{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png',
+					url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
 					options: {
 						maxZoom: 18
 					}
 				},
 				CH: {
-					url: '//tile.osm.ch/switzerland/{z}/{x}/{y}.png',
+					url: 'https://tile.osm.ch/switzerland/{z}/{x}/{y}.png',
 					options: {
 						maxZoom: 18,
 						bounds: [[45, 5], [48, 11]]
 					}
 				},
 				France: {
-					url: '//{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
+					url: 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
 					options: {
 						maxZoom: 20,
-						attribution: '&copy; Openstreetmap France | {attribution.OpenStreetMap}'
+						attribution: '&copy; OpenStreetMap France | {attribution.OpenStreetMap}'
 					}
 				},
 				HOT: {
-					url: '//{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+					url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
 					options: {
 						attribution:
 							'{attribution.OpenStreetMap}, ' +
@@ -4385,7 +4387,7 @@ function asArray(value) {
 					}
 				},
 				BZH: {
-					url: '//tile.openstreetmap.bzh/br/{z}/{x}/{y}.png',
+					url: 'https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png',
 					options: {
 						attribution: '{attribution.OpenStreetMap}, Tiles courtesy of <a href="http://www.openstreetmap.bzh/" target="_blank">Breton OpenStreetMap Team</a>',
 						bounds: [[46.2, -5.5], [50, 0.7]]
@@ -4393,17 +4395,46 @@ function asArray(value) {
 				}
 			}
 		},
+		MapTilesAPI: {
+			url: 'https://maptiles.p.rapidapi.com/{variant}/{z}/{x}/{y}.png?rapidapi-key={apikey}',
+			options: {
+				attribution:
+					'&copy; <a href="http://www.maptilesapi.com/">MapTiles API</a>, {attribution.OpenStreetMap}',
+				variant: 'en/map/v1',
+				// Get your own MapTiles API access token here : https://www.maptilesapi.com/
+				// NB : this is a demonstration key that comes with no guarantee and not to be used in production
+				apikey: '<insert your api key here>',
+				maxZoom: 19
+			},
+			variants: {
+				OSMEnglish: {
+					options: {
+						variant: 'en/map/v1'
+					}
+				},
+				OSMFrancais: {
+					options: {
+						variant: 'fr/map/v1'
+					}
+				},
+				OSMEspagnol: {
+					options: {
+						variant: 'es/map/v1'
+					}
+				}
+			}
+		},
 		OpenSeaMap: {
-			url: '//tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+			url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
 			options: {
 				attribution: 'Map data: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a> contributors'
 			}
 		},
-		OpenPtMap: {
-			url: 'http://openptmap.org/tiles/{z}/{x}/{y}.png',
+		OPNVKarte: {
+			url: 'https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png',
 			options: {
-				maxZoom: 17,
-				attribution: 'Map data: &copy; <a href="http://www.openptmap.org">OpenPtMap</a> contributors'
+				maxZoom: 18,
+				attribution: 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, map data {attribution.OpenStreetMap}'
 			}
 		},
 		OpenTopoMap: {
@@ -4428,10 +4459,141 @@ function asArray(value) {
 			}
 		},
 		SafeCast: {
-			url: '//s3.amazonaws.com/te512.safecast.org/{z}/{x}/{y}.png',
+			url: 'https://s3.amazonaws.com/te512.safecast.org/{z}/{x}/{y}.png',
 			options: {
 				maxZoom: 16,
 				attribution: 'Map data: {attribution.OpenStreetMap} | Map style: &copy; <a href="https://blog.safecast.org/about/">SafeCast</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+			}
+		},
+		Stadia: {
+			url: 'https://tiles.stadiamaps.com/tiles/{variant}/{z}/{x}/{y}{r}.{ext}',
+			options: {
+				minZoom: 0,
+				maxZoom: 20,
+				attribution:
+					'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+					'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+					'{attribution.OpenStreetMap}',
+				variant: 'alidade_smooth',
+				ext: 'png'
+			},
+			variants: {
+				AlidadeSmooth: 'alidade_smooth',
+				AlidadeSmoothDark: 'alidade_smooth_dark',
+				OSMBright: 'osm_bright',
+				Outdoors: 'outdoors',
+				StamenToner: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_toner'
+					}
+				},
+				StamenTonerBackground: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_toner_background'
+					}
+				},
+				StamenTonerLines: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_toner_lines'
+					}
+				},
+				StamenTonerLabels: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_toner_labels'
+					}
+				},
+				StamenTonerLite: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_toner_lite'
+					}
+				},
+				StamenWatercolor: {
+					url: 'https://tiles.stadiamaps.com/tiles/{variant}/{z}/{x}/{y}.{ext}',
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_watercolor',
+						ext: 'jpg',
+						minZoom: 1,
+						maxZoom: 16
+					}
+				},
+				StamenTerrain: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_terrain',
+						minZoom: 0,
+						maxZoom: 18
+					}
+				},
+				StamenTerrainBackground: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_terrain_background',
+						minZoom: 0,
+						maxZoom: 18
+					}
+				},
+				StamenTerrainLabels: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_terrain_labels',
+						minZoom: 0,
+						maxZoom: 18
+					}
+				},
+				StamenTerrainLines: {
+					options: {
+						attribution:
+							'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+							'&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> ' +
+							'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+							'{attribution.OpenStreetMap}',
+						variant: 'stamen_terrain_lines',
+						minZoom: 0,
+						maxZoom: 18
+					}
+				}
 			}
 		},
 		Thunderforest: {
@@ -4467,146 +4629,78 @@ function asArray(value) {
 				Neighbourhood: 'neighbourhood'
 			}
 		},
-		OpenMapSurfer: {
-			url: 'https://maps.heigit.org/openmapsurfer/tiles/{variant}/webmercator/{z}/{x}/{y}.png',
+		CyclOSM: {
+			url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
 			options: {
-				maxZoom: 19,
-				variant: 'roads',
-				attribution: 'Imagery from <a href="http://giscience.uni-hd.de/">GIScience Research Group @ University of Heidelberg</a> | Map data '
-			},
-			variants: {
-				Roads: {
-					options: {
-						variant: 'roads',
-						attribution: '{attribution.OpenMapSurfer}{attribution.OpenStreetMap}'
-					}
-				},
-				Hybrid: {
-					options: {
-						variant: 'hybrid',
-						attribution: '{attribution.OpenMapSurfer}{attribution.OpenStreetMap}'
-					}
-				},
-				AdminBounds: {
-					options: {
-						variant: 'adminb',
-						maxZoom: 18,
-						attribution: '{attribution.OpenMapSurfer}{attribution.OpenStreetMap}'
-					}
-				},
-				ContourLines: {
-					options: {
-						variant: 'asterc',
-						maxZoom: 18,
-						minZoom: 13,
-						attribution: '{attribution.OpenMapSurfer} <a href="https://lpdaac.usgs.gov/products/aster_policies">ASTER GDEM</a>'
-					}
-				},
-				Hillshade: {
-					options: {
-						variant: 'asterh',
-						maxZoom: 18,
-						attribution: '{attribution.OpenMapSurfer} <a href="https://lpdaac.usgs.gov/products/aster_policies">ASTER GDEM</a>, <a href="http://srtm.csi.cgiar.org/">SRTM</a>'
-					}
-				},
-				ElementsAtRisk: {
-					options: {
-						variant: 'elements_at_risk',
-						attribution: '{attribution.OpenMapSurfer}{attribution.OpenStreetMap}'
-					}
-				}
+				maxZoom: 20,
+				attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: {attribution.OpenStreetMap}'
 			}
 		},
-		Hydda: {
-			url: '//{s}.tile.openstreetmap.se/hydda/{variant}/{z}/{x}/{y}.png',
+		Jawg: {
+			url: 'https://{s}.tile.jawg.io/{variant}/{z}/{x}/{y}{r}.png?access-token={accessToken}',
 			options: {
-				maxZoom: 18,
-				variant: 'full',
-				attribution: 'Tiles courtesy of <a href="http://openstreetmap.se/" target="_blank">OpenStreetMap Sweden</a> &mdash; Map data {attribution.OpenStreetMap}'
+				attribution:
+					'<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> ' +
+					'{attribution.OpenStreetMap}',
+				minZoom: 0,
+				maxZoom: 22,
+				subdomains: 'abcd',
+				variant: 'jawg-terrain',
+				// Get your own Jawg access token here : https://www.jawg.io/lab/
+				// NB : this is a demonstration key that comes with no guarantee
+				accessToken: '<insert your access token here>',
 			},
 			variants: {
-				Full: 'full',
-				Base: 'base',
-				RoadsAndLabels: 'roads_and_labels'
+				Streets: 'jawg-streets',
+				Terrain: 'jawg-terrain',
+				Sunny: 'jawg-sunny',
+				Dark: 'jawg-dark',
+				Light: 'jawg-light',
+				Matrix: 'jawg-matrix'
 			}
 		},
 		MapBox: {
-			url: 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}{r}.png?access_token={accessToken}',
+			url: 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}',
 			options: {
 				attribution:
-					'<a href="https://www.mapbox.com/about/maps/" target="_blank">&copy; Mapbox</a> ' +
+					'&copy; <a href="https://www.mapbox.com/about/maps/" target="_blank">Mapbox</a> ' +
 					'{attribution.OpenStreetMap} ' +
 					'<a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a>',
-				subdomains: 'abcd',
-				id: 'mapbox.streets',
+				tileSize: 512,
+				maxZoom: 18,
+				zoomOffset: -1,
+				id: 'mapbox/streets-v11',
 				accessToken: '<insert your access token here>',
 			}
 		},
-		Stamen: {
-			url: '//stamen-tiles-{s}.a.ssl.fastly.net/{variant}/{z}/{x}/{y}{r}.{ext}',
+		MapTiler: {
+			url: 'https://api.maptiler.com/maps/{variant}/{z}/{x}/{y}{r}.{ext}?key={key}',
 			options: {
 				attribution:
-					'Map tiles by <a href="http://stamen.com">Stamen Design</a>, ' +
-					'<a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; ' +
-					'Map data {attribution.OpenStreetMap}',
-				subdomains: 'abcd',
+					'<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+				variant: 'streets',
+				ext: 'png',
+				key: '<insert your MapTiler Cloud API key here>',
+				tileSize: 512,
+				zoomOffset: -1,
 				minZoom: 0,
-				maxZoom: 20,
-				variant: 'toner',
-				ext: 'png'
+				maxZoom: 21
 			},
 			variants: {
+				Streets: 'streets',
+				Basic: 'basic',
+				Bright: 'bright',
+				Pastel: 'pastel',
+				Positron: 'positron',
+				Hybrid: {
+					options: {
+						variant: 'hybrid',
+						ext: 'jpg'
+					}
+				},
 				Toner: 'toner',
-				TonerBackground: 'toner-background',
-				TonerHybrid: 'toner-hybrid',
-				TonerLines: 'toner-lines',
-				TonerLabels: 'toner-labels',
-				TonerLite: 'toner-lite',
-				Watercolor: {
-					url: '//stamen-tiles-{s}.a.ssl.fastly.net/{variant}/{z}/{x}/{y}.{ext}',
-					options: {
-						variant: 'watercolor',
-						ext: 'jpg',
-						minZoom: 1,
-						maxZoom: 16
-					}
-				},
-				Terrain: {
-					options: {
-						variant: 'terrain',
-						minZoom: 0,
-						maxZoom: 18
-					}
-				},
-				TerrainBackground: {
-					options: {
-						variant: 'terrain-background',
-						minZoom: 0,
-						maxZoom: 18
-					}
-				},
-				TerrainLabels: {
-					options: {
-						variant: 'terrain-labels',
-						minZoom: 0,
-						maxZoom: 18
-					}
-				},
-				TopOSMRelief: {
-					url: '//stamen-tiles-{s}.a.ssl.fastly.net/{variant}/{z}/{x}/{y}.{ext}',
-					options: {
-						variant: 'toposm-color-relief',
-						ext: 'jpg',
-						bounds: [[22, -132], [51, -56]]
-					}
-				},
-				TopOSMFeatures: {
-					options: {
-						variant: 'toposm-features',
-						bounds: [[22, -132], [51, -56]],
-						opacity: 0.9
-					}
-				}
+				Topo: 'topo',
+				Voyager: 'voyager'
 			}
 		},
 		TomTom: {
@@ -4628,7 +4722,7 @@ function asArray(value) {
 			}
 		},
 		Esri: {
-			url: '//server.arcgisonline.com/ArcGIS/rest/services/{variant}/MapServer/tile/{z}/{y}/{x}',
+			url: 'https://server.arcgisonline.com/ArcGIS/rest/services/{variant}/MapServer/tile/{z}/{y}/{x}',
 			options: {
 				variant: 'World_Street_Map',
 				attribution: 'Tiles &copy; Esri'
@@ -4690,7 +4784,7 @@ function asArray(value) {
 				},
 				OceanBasemap: {
 					options: {
-						variant: 'Ocean_Basemap',
+						variant: 'Ocean/World_Ocean_Base',
 						maxZoom: 13,
 						attribution: '{attribution.Esri} &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri'
 					}
@@ -4716,7 +4810,7 @@ function asArray(value) {
 			options: {
 				maxZoom: 19,
 				attribution: 'Map data &copy; <a href="http://openweathermap.org">OpenWeatherMap</a>',
-				apiKey:'<insert your api key here>',
+				apiKey: '<insert your api key here>',
 				opacity: 0.5
 			},
 			variants: {
@@ -4736,7 +4830,7 @@ function asArray(value) {
 		HERE: {
 			/*
 			 * HERE maps, formerly Nokia maps.
-			 * These basemaps are free, but you need an API key. Please sign up at
+			 * These basemaps are free, but you need an api id and app key. Please sign up at
 			 * https://developer.here.com/plans
 			 */
 			url:
@@ -4852,15 +4946,123 @@ function asArray(value) {
 				}
 			}
 		},
+		HEREv3: {
+			/*
+			 * HERE maps API Version 3.
+			 * These basemaps are free, but you need an API key. Please sign up at
+			 * https://developer.here.com/plans
+			 * Version 3 deprecates the app_id and app_code access in favor of apiKey
+			 *
+			 * Supported access methods as of 2019/12/21:
+			 * @see https://developer.here.com/faqs#access-control-1--how-do-you-control-access-to-here-location-services
+			 */
+			url:
+				'https://{s}.{base}.maps.ls.hereapi.com/maptile/2.1/' +
+				'{type}/{mapID}/{variant}/{z}/{x}/{y}/{size}/{format}?' +
+				'apiKey={apiKey}&lg={language}',
+			options: {
+				attribution:
+					'Map &copy; 1987-' + new Date().getFullYear() + ' <a href="http://developer.here.com">HERE</a>',
+				subdomains: '1234',
+				mapID: 'newest',
+				apiKey: '<insert your apiKey here>',
+				base: 'base',
+				variant: 'normal.day',
+				maxZoom: 20,
+				type: 'maptile',
+				language: 'eng',
+				format: 'png8',
+				size: '256'
+			},
+			variants: {
+				normalDay: 'normal.day',
+				normalDayCustom: 'normal.day.custom',
+				normalDayGrey: 'normal.day.grey',
+				normalDayMobile: 'normal.day.mobile',
+				normalDayGreyMobile: 'normal.day.grey.mobile',
+				normalDayTransit: 'normal.day.transit',
+				normalDayTransitMobile: 'normal.day.transit.mobile',
+				normalNight: 'normal.night',
+				normalNightMobile: 'normal.night.mobile',
+				normalNightGrey: 'normal.night.grey',
+				normalNightGreyMobile: 'normal.night.grey.mobile',
+				normalNightTransit: 'normal.night.transit',
+				normalNightTransitMobile: 'normal.night.transit.mobile',
+				reducedDay: 'reduced.day',
+				reducedNight: 'reduced.night',
+				basicMap: {
+					options: {
+						type: 'basetile'
+					}
+				},
+				mapLabels: {
+					options: {
+						type: 'labeltile',
+						format: 'png'
+					}
+				},
+				trafficFlow: {
+					options: {
+						base: 'traffic',
+						type: 'flowtile'
+					}
+				},
+				carnavDayGrey: 'carnav.day.grey',
+				hybridDay: {
+					options: {
+						base: 'aerial',
+						variant: 'hybrid.day'
+					}
+				},
+				hybridDayMobile: {
+					options: {
+						base: 'aerial',
+						variant: 'hybrid.day.mobile'
+					}
+				},
+				hybridDayTransit: {
+					options: {
+						base: 'aerial',
+						variant: 'hybrid.day.transit'
+					}
+				},
+				hybridDayGrey: {
+					options: {
+						base: 'aerial',
+						variant: 'hybrid.grey.day'
+					}
+				},
+				pedestrianDay: 'pedestrian.day',
+				pedestrianNight: 'pedestrian.night',
+				satelliteDay: {
+					options: {
+						base: 'aerial',
+						variant: 'satellite.day'
+					}
+				},
+				terrainDay: {
+					options: {
+						base: 'aerial',
+						variant: 'terrain.day'
+					}
+				},
+				terrainDayMobile: {
+					options: {
+						base: 'aerial',
+						variant: 'terrain.day.mobile'
+					}
+				}
+			}
+		},
 		FreeMapSK: {
-			url: 'http://t{s}.freemap.sk/T/{z}/{x}/{y}.jpeg',
+			url: 'https://{s}.freemap.sk/T/{z}/{x}/{y}.jpeg',
 			options: {
 				minZoom: 8,
 				maxZoom: 16,
-				subdomains: '1234',
+				subdomains: 'abcd',
 				bounds: [[47.204642, 15.996093], [49.830896, 22.576904]],
 				attribution:
-					'{attribution.OpenStreetMap}, vizualization CC-By-SA 2.0 <a href="http://freemap.sk">Freemap.sk</a>'
+					'{attribution.OpenStreetMap}, visualization CC-By-SA 2.0 <a href="http://freemap.sk">Freemap.sk</a>'
 			}
 		},
 		MtbMap: {
@@ -4875,7 +5077,7 @@ function asArray(value) {
 			options: {
 				attribution: '{attribution.OpenStreetMap} &copy; <a href="https://carto.com/attributions">CARTO</a>',
 				subdomains: 'abcd',
-				maxZoom: 19,
+				maxZoom: 20,
 				variant: 'light_all'
 			},
 			variants: {
@@ -4909,11 +5111,11 @@ function asArray(value) {
 			}
 		},
 		BasemapAT: {
-			url: '//maps{s}.wien.gv.at/basemap/{variant}/normal/google3857/{z}/{y}/{x}.{format}',
+			url: 'https://mapsneu.wien.gv.at/basemap/{variant}/{type}/google3857/{z}/{y}/{x}.{format}',
 			options: {
 				maxZoom: 19,
 				attribution: 'Datenquelle: <a href="https://www.basemap.at">basemap.at</a>',
-				subdomains: ['', '1', '2', '3', '4'],
+				type: 'normal',
 				format: 'png',
 				bounds: [[46.358770, 8.782379], [49.037872, 17.189532]],
 				variant: 'geolandbasemap'
@@ -4927,6 +5129,20 @@ function asArray(value) {
 				},
 				grau: 'bmapgrau',
 				overlay: 'bmapoverlay',
+				terrain: {
+					options: {
+						variant: 'bmapgelaende',
+						type: 'grau',
+						format: 'jpeg'
+					}
+				},
+				surface: {
+					options: {
+						variant: 'bmapoberflaeche',
+						type: 'grau',
+						format: 'jpeg'
+					}
+				},
 				highdpi: {
 					options: {
 						variant: 'bmaphidpi',
@@ -4943,19 +5159,20 @@ function asArray(value) {
 			}
 		},
 		nlmaps: {
-			url: '//geodata.nationaalgeoregister.nl/tiles/service/wmts/{variant}/EPSG:3857/{z}/{x}/{y}.png',
+			url: 'https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/{variant}/EPSG:3857/{z}/{x}/{y}.png',
 			options: {
 				minZoom: 6,
 				maxZoom: 19,
 				bounds: [[50.5, 3.25], [54, 7.6]],
-				attribution: 'Kaartgegevens &copy; <a href="kadaster.nl">Kadaster</a>'
+				attribution: 'Kaartgegevens &copy; <a href="https://www.kadaster.nl">Kadaster</a>'
 			},
 			variants: {
-				'standaard': 'brtachtergrondkaart',
-				'pastel': 'brtachtergrondkaartpastel',
-				'grijs': 'brtachtergrondkaartgrijs',
+				'standaard': 'standaard',
+				'pastel': 'pastel',
+				'grijs': 'grijs',
+				'water': 'water',
 				'luchtfoto': {
-					'url': '//geodata.nationaalgeoregister.nl/luchtfoto/rgb/wmts/1.0.0/2016_ortho25/EPSG:3857/{z}/{x}/{y}.png',
+					'url': 'https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_ortho25/EPSG:3857/{z}/{x}/{y}.jpeg',
 				}
 			}
 		},
@@ -4991,7 +5208,7 @@ function asArray(value) {
 				},
 				ModisTerraSnowCover: {
 					options: {
-						variant: 'MODIS_Terra_Snow_Cover',
+						variant: 'MODIS_Terra_NDSI_Snow_Cover',
 						format: 'png',
 						maxZoom: 8,
 						opacity: 0.75
@@ -5024,7 +5241,7 @@ function asArray(value) {
 			//   z0-9  - 1:1m
 			//  z10-11 - quarter inch (1:253440)
 			//  z12-18 - one inch (1:63360)
-			url: '//nls-{s}.tileserver.com/nls/{z}/{x}/{y}.jpg',
+			url: 'https://nls-{s}.tileserver.com/nls/{z}/{x}/{y}.jpg',
 			options: {
 				attribution: '<a href="http://geo.nls.uk/maps/">National Library of Scotland Historic Maps</a>',
 				bounds: [[49.6, -12], [61.7, 3]],
@@ -5037,7 +5254,7 @@ function asArray(value) {
 			// Justice Map (http://www.justicemap.org/)
 			// Visualize race and income data for your community, county and country.
 			// Includes tools for data journalists, bloggers and community activists.
-			url: 'http://www.justicemap.org/tile/{size}/{variant}/{z}/{x}/{y}.png',
+			url: 'https://www.justicemap.org/tile/{size}/{variant}/{z}/{x}/{y}.png',
 			options: {
 				attribution: '<a href="http://www.justicemap.org/terms.php">Justice Map</a>',
 				// one of 'county', 'tract', 'block'
@@ -5057,14 +5274,6 @@ function asArray(value) {
 				plurality: 'plural'
 			}
 		},
-		Wikimedia: {
-			url: 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}{r}.png',
-			options: {
-				attribution: '<a href="https://wikimediafoundation.org/wiki/Maps_Terms_of_Use">Wikimedia</a>',
-				minZoom: 1,
-				maxZoom: 19
-			}
-		},
 		GeoportailFrance: {
 			url: 'https://wxs.ign.fr/{apikey}/geoportail/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE={style}&TILEMATRIXSET=PM&FORMAT={format}&LAYER={variant}&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
 			options: {
@@ -5075,31 +5284,30 @@ function asArray(value) {
 				// Get your own geoportail apikey here : http://professionnels.ign.fr/ign/contrats/
 				// NB : 'choisirgeoportail' is a demonstration key that comes with no guarantee
 				apikey: 'choisirgeoportail',
-				format: 'image/jpeg',
-				style : 'normal',
-				variant: 'GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN-EXPRESS.STANDARD'
+				format: 'image/png',
+				style: 'normal',
+				variant: 'GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2'
 			},
 			variants: {
+				plan: 'GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2',
 				parcels: {
-					options : {
-						variant: 'CADASTRALPARCELS.PARCELS',
-						maxZoom: 20,
-						style : 'bdparcellaire',
-						format: 'image/png'
+					options: {
+						variant: 'CADASTRALPARCELS.PARCELLAIRE_EXPRESS',
+						style: 'PCI vecteur',
+						maxZoom: 20
 					}
 				},
-				ignMaps: 'GEOGRAPHICALGRIDSYSTEMS.MAPS',
-				maps: 'GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN-EXPRESS.STANDARD',
 				orthos: {
 					options: {
 						maxZoom: 19,
+						format: 'image/jpeg',
 						variant: 'ORTHOIMAGERY.ORTHOPHOTOS'
 					}
 				}
 			}
 		},
 		OneMapSG: {
-			url: '//maps-{s}.onemap.sg/v3/{variant}/{z}/{x}/{y}.png',
+			url: 'https://maps-{s}.onemap.sg/v3/{variant}/{z}/{x}/{y}.png',
 			options: {
 				variant: 'Default',
 				minZoom: 11,
@@ -5113,6 +5321,123 @@ function asArray(value) {
 				Original: 'Original',
 				Grey: 'Grey',
 				LandLot: 'LandLot'
+			}
+		},
+		USGS: {
+			url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
+			options: {
+				maxZoom: 20,
+				attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
+			},
+			variants: {
+				USTopo: {},
+				USImagery: {
+					url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}'
+				},
+				USImageryTopo: {
+					url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}'
+				}
+			}
+		},
+		WaymarkedTrails: {
+			url: 'https://tile.waymarkedtrails.org/{variant}/{z}/{x}/{y}.png',
+			options: {
+				maxZoom: 18,
+				attribution: 'Map data: {attribution.OpenStreetMap} | Map style: &copy; <a href="https://waymarkedtrails.org">waymarkedtrails.org</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+			},
+			variants: {
+				hiking: 'hiking',
+				cycling: 'cycling',
+				mtb: 'mtb',
+				slopes: 'slopes',
+				riding: 'riding',
+				skating: 'skating'
+			}
+		},
+		OpenAIP: {
+			url: 'https://{s}.tile.maps.openaip.net/geowebcache/service/tms/1.0.0/openaip_basemap@EPSG%3A900913@png/{z}/{x}/{y}.{ext}',
+			options: {
+				attribution: '<a href="https://www.openaip.net/">openAIP Data</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-NC-SA</a>)',
+				ext: 'png',
+				minZoom: 4,
+				maxZoom: 14,
+				tms: true,
+				detectRetina: true,
+				subdomains: '12'
+			}
+		},
+		OpenSnowMap: {
+			url: 'https://tiles.opensnowmap.org/{variant}/{z}/{x}/{y}.png',
+			options: {
+				minZoom: 9,
+				maxZoom: 18,
+				attribution: 'Map data: {attribution.OpenStreetMap} & ODbL, &copy; <a href="https://www.opensnowmap.org/iframes/data.html">www.opensnowmap.org</a> <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
+			},
+			variants: {
+				pistes: 'pistes',
+			}
+		},
+		AzureMaps: {
+			url: 
+				'https://atlas.microsoft.com/map/tile?api-version={apiVersion}'+
+				'&tilesetId={variant}&x={x}&y={y}&zoom={z}&language={language}'+
+				'&subscription-key={subscriptionKey}',
+			options: {
+				attribution: 'See https://docs.microsoft.com/en-us/rest/api/maps/render-v2/get-map-tile for details.',
+				apiVersion: '2.0',
+				variant: 'microsoft.imagery',
+				subscriptionKey: '<insert your subscription key here>',
+				language: 'en-US',
+			},
+			variants: {
+				MicrosoftImagery: 'microsoft.imagery',
+				MicrosoftBaseDarkGrey: 'microsoft.base.darkgrey',
+				MicrosoftBaseRoad: 'microsoft.base.road',
+				MicrosoftBaseHybridRoad: 'microsoft.base.hybrid.road',
+				MicrosoftTerraMain: 'microsoft.terra.main',
+				MicrosoftWeatherInfraredMain: {
+					url: 
+					'https://atlas.microsoft.com/map/tile?api-version={apiVersion}'+
+					'&tilesetId={variant}&x={x}&y={y}&zoom={z}'+
+					'&timeStamp={timeStamp}&language={language}' +
+					'&subscription-key={subscriptionKey}',
+					options: {
+						timeStamp: '2021-05-08T09:03:00Z',
+						attribution: 'See https://docs.microsoft.com/en-us/rest/api/maps/render-v2/get-map-tile#uri-parameters for details.',
+						variant: 'microsoft.weather.infrared.main',
+					},
+				},
+				MicrosoftWeatherRadarMain: {
+					url: 
+					'https://atlas.microsoft.com/map/tile?api-version={apiVersion}'+
+					'&tilesetId={variant}&x={x}&y={y}&zoom={z}'+
+					'&timeStamp={timeStamp}&language={language}' +
+					'&subscription-key={subscriptionKey}',
+					options: {
+						timeStamp: '2021-05-08T09:03:00Z',
+						attribution: 'See https://docs.microsoft.com/en-us/rest/api/maps/render-v2/get-map-tile#uri-parameters for details.',
+						variant: 'microsoft.weather.radar.main',
+					},
+				}
+			},
+		},
+		SwissFederalGeoportal: {
+			url: 'https://wmts.geo.admin.ch/1.0.0/{variant}/default/current/3857/{z}/{x}/{y}.jpeg',
+			options: {
+				attribution: '&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>',
+				minZoom: 2,
+				maxZoom: 18,
+				bounds: [[45.398181, 5.140242], [48.230651, 11.47757]]
+			},
+			variants: {
+				NationalMapColor: 'ch.swisstopo.pixelkarte-farbe',
+				NationalMapGrey: 'ch.swisstopo.pixelkarte-grau',
+				SWISSIMAGE: {
+					options: {
+						variant: 'ch.swisstopo.swissimage',
+						maxZoom: 19
+					}
+				}
 			}
 		}
 	};
@@ -5199,23 +5524,17 @@ overflow-y: auto;
 border: 1px solid #ddd;
 border-radius: 4px;
 }
-.tabset-dropdown > .nav-tabs > li.active:before {
-content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+content: "\e259";
 font-family: 'Glyphicons Halflings';
 display: inline-block;
 padding: 10px;
 border-right: 1px solid #ddd;
 }
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-content: "";
-border: none;
-}
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-content: "";
+content: "\e258";
 font-family: 'Glyphicons Halflings';
-display: inline-block;
-padding: 10px;
-border-right: 1px solid #ddd;
+border: none;
 }
 .tabset-dropdown > .nav-tabs > li.active {
 display: block;
@@ -5258,7 +5577,7 @@ display: none;
 
 <h1 class="title toc-ignore">Leaflet</h1>
 <h4 class="author">Matthew Sisk</h4>
-<h4 class="date">Updated November, 2022</h4>
+<h4 class="date">Updated November, 2023</h4>
 
 </div>
 
@@ -5271,12 +5590,14 @@ maps</p>
 web maps. It is used throughout the web as an easy way to create
 interactive maps using a variety of different data types. Here we will
 work with the R packages used for creating leaflet modules.</p>
-<pre class="r"><code>library(leaflet)
-library(sf)</code></pre>
-<pre><code>## Linking to GEOS 3.9.1, GDAL 3.3.2, PROJ 7.2.1; sf_use_s2() is TRUE</code></pre>
+<pre class="r"><code>library(leaflet)</code></pre>
+<pre><code>## Warning: package &#39;leaflet&#39; was built under R version 4.3.2</code></pre>
+<pre class="r"><code>library(sf)</code></pre>
+<pre><code>## Warning: package &#39;sf&#39; was built under R version 4.3.1</code></pre>
+<pre><code>## Linking to GEOS 3.11.2, GDAL 3.6.2, PROJ 9.2.0; sf_use_s2() is TRUE</code></pre>
 <pre class="r"><code>council.districts &lt;-st_read(&quot;SampleData/City_Council_Districts.shp&quot;)</code></pre>
 <pre><code>## Reading layer `City_Council_Districts&#39; from data source 
-##   `C:\Users\msisk1\Documents\GIT\teaching\Data-Viz-2022-Fall\Week03\Demonstrations\SampleData\City_Council_Districts.shp&#39; 
+##   `C:\Users\msisk1\Documents\GIT\teaching\Data-Viz-2023-Fall\Week03\Demonstrations\SampleData\City_Council_Districts.shp&#39; 
 ##   using driver `ESRI Shapefile&#39;
 ## Simple feature collection with 6 features and 14 fields
 ## Geometry type: MULTIPOLYGON
@@ -5296,8 +5617,8 @@ from sf, sp, raster or data.frame objects.</p>
 <pre class="r"><code>leaflet()  %&gt;%
   addTiles()  %&gt;%
   addMarkers(data = facilities.spatial)</code></pre>
-<div id="htmlwidget-733e39a90ce1213521e0" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-733e39a90ce1213521e0">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.3802049849996,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.2598173109997,-86.1321207709997,-86.3071817629997,-86.2955201739996,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.1776610129996,-86.2474783459997,-86.3268999889997,-86.3970284219997,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.3272693289997,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.1094910979996,-86.2955708739997,-86.2828226389997,-86.1564108839997,-86.2207571369997,-86.1769238349997,-86.1813756359996,-86.1393021889996,-86.2499720789997],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
+<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-c2b45c1cab258ee8d777" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-c2b45c1cab258ee8d777">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.38020498499959,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.25981731099969,-86.13212077099971,-86.3071817629997,-86.29552017399961,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.17766101299959,-86.2474783459997,-86.3268999889997,-86.39702842199971,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.32726932899971,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.10949109799959,-86.29557087399969,-86.2828226389997,-86.1564108839997,-86.22075713699969,-86.1769238349997,-86.1813756359996,-86.13930218899959,-86.2499720789997],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
 <p>These are the most basic type of marker, but it is easy to customize
 these as well. The easiest thing is to create a popup with more
 information when you click on a marker. The format for this is html, so
@@ -5306,8 +5627,8 @@ create a new string field with html and use that.</p>
 <pre class="r"><code>leaflet()  %&gt;%
   addTiles()  %&gt;%
   addMarkers(data = facilities.spatial, popup = ~POPL_NAME)</code></pre>
-<div id="htmlwidget-ff7ea4a9079efadc94d9" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-ff7ea4a9079efadc94d9">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.3802049849996,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.2598173109997,-86.1321207709997,-86.3071817629997,-86.2955201739996,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.1776610129996,-86.2474783459997,-86.3268999889997,-86.3970284219997,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.3272693289997,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.1094910979996,-86.2955708739997,-86.2828226389997,-86.1564108839997,-86.2207571369997,-86.1769238349997,-86.1813756359996,-86.1393021889996,-86.2499720789997],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["Warren Twp. Sta. 1","Mishawaka Fire Dept. Station #4","Portage Twp. Fire","South Bend Fire Dept. Station #10","North Liberty Fire","St. Joseph Co. Public Library North Liberty Branch","South Bend Fire Dept. Station #4","St. Joseph Co. Public Library Lakeville Branch","South Bend Fire Dept. Station #7","Mishawaka EMS Station","South Bend Fire Dept. Station #2","Penn North Fire","South Bend Fire Dept. Station #6","St. Joseph Co. Public Library LaSalle Branch","Madison Twp. Fire","New Carlisle Fire","South Bend Fire Dept. Station #9","South Bend Fire Dept. Station #5","St. Joseph Co. Public Library Centre Township Branch","St. Joseph Co. Public Library Tutt Branch","Centre Twp. Fire","Mishawaka Police Department","St. Joseph Co. Public Library Western Branch","New Carlisle Ambulanc","Mishawaka Public Library","Penn South Sta. 2","Mishawaka Fire Dept. Station #3","South Bend Fire Dept. Station #8","South Bend Police Department","Warren Twp. Sta. 2","St. Joseph Co. Public Library Francis Branch","St. Joseph Co. Public Library River Park Branch","Mishawaka Public Library Harris Branch","Lakeville Fire","Osceola Twp. Fire","Harris Twp. Sta. 2","Clay Twp. Sta. 1","St. Joseph County Jail","German Twp. Sta. 2","Clay Twp. Sta. 2","St. Joseph Co. Public Library Main Branch","South Bend Fire Dept. Station #11","Mishawaka Public Library Bittersweet Branch","German Twp. Sta. 1","St. Joseph Co. Public Library German Township Branch","Penn South Sta. 1","South Bend Fire Dept. Station #3","Mishawaka Fire Dept. Station #1","Mishawaka Fire Dept. Station #2","Harris Twp. Sta. 1","South Bend Fire Dept."],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
+<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-895632ca3c4774b515b9" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-895632ca3c4774b515b9">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.38020498499959,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.25981731099969,-86.13212077099971,-86.3071817629997,-86.29552017399961,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.17766101299959,-86.2474783459997,-86.3268999889997,-86.39702842199971,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.32726932899971,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.10949109799959,-86.29557087399969,-86.2828226389997,-86.1564108839997,-86.22075713699969,-86.1769238349997,-86.1813756359996,-86.13930218899959,-86.2499720789997],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["Warren Twp. Sta. 1","Mishawaka Fire Dept. Station #4","Portage Twp. Fire","South Bend Fire Dept. Station #10","North Liberty Fire","St. Joseph Co. Public Library North Liberty Branch","South Bend Fire Dept. Station #4","St. Joseph Co. Public Library Lakeville Branch","South Bend Fire Dept. Station #7","Mishawaka EMS Station","South Bend Fire Dept. Station #2","Penn North Fire","South Bend Fire Dept. Station #6","St. Joseph Co. Public Library LaSalle Branch","Madison Twp. Fire","New Carlisle Fire","South Bend Fire Dept. Station #9","South Bend Fire Dept. Station #5","St. Joseph Co. Public Library Centre Township Branch","St. Joseph Co. Public Library Tutt Branch","Centre Twp. Fire","Mishawaka Police Department","St. Joseph Co. Public Library Western Branch","New Carlisle Ambulanc","Mishawaka Public Library","Penn South Sta. 2","Mishawaka Fire Dept. Station #3","South Bend Fire Dept. Station #8","South Bend Police Department","Warren Twp. Sta. 2","St. Joseph Co. Public Library Francis Branch","St. Joseph Co. Public Library River Park Branch","Mishawaka Public Library Harris Branch","Lakeville Fire","Osceola Twp. Fire","Harris Twp. Sta. 2","Clay Twp. Sta. 1","St. Joseph County Jail","German Twp. Sta. 2","Clay Twp. Sta. 2","St. Joseph Co. Public Library Main Branch","South Bend Fire Dept. Station #11","Mishawaka Public Library Bittersweet Branch","German Twp. Sta. 1","St. Joseph Co. Public Library German Township Branch","Penn South Sta. 1","South Bend Fire Dept. Station #3","Mishawaka Fire Dept. Station #1","Mishawaka Fire Dept. Station #2","Harris Twp. Sta. 1","South Bend Fire Dept."],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
 <p>or you can create a new string field with html and use that.</p>
 <pre class="r"><code>facilities.spatial$popup &lt;- paste(&quot;&lt;b&gt;&quot;,facilities.spatial$POPL_NAME,&quot;&lt;/b&gt;&lt;br&gt;&quot;,
                                   &quot;Type: &quot;,facilities.spatial$POPL_TYPE,&quot;&lt;br&gt;&quot;,
@@ -5315,8 +5636,8 @@ create a new string field with html and use that.</p>
 leaflet()  %&gt;%
   addTiles()  %&gt;%
   addMarkers(data = facilities.spatial, popup = ~popup)</code></pre>
-<div id="htmlwidget-95df3c1bd8c25ee44147" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-95df3c1bd8c25ee44147">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.3802049849996,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.2598173109997,-86.1321207709997,-86.3071817629997,-86.2955201739996,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.1776610129996,-86.2474783459997,-86.3268999889997,-86.3970284219997,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.3272693289997,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.1094910979996,-86.2955708739997,-86.2828226389997,-86.1564108839997,-86.2207571369997,-86.1769238349997,-86.1813756359996,-86.1393021889996,-86.2499720789997],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
+<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-b677431183fc529669cf" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-b677431183fc529669cf">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.38020498499959,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.25981731099969,-86.13212077099971,-86.3071817629997,-86.29552017399961,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.17766101299959,-86.2474783459997,-86.3268999889997,-86.39702842199971,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.32726932899971,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.10949109799959,-86.29557087399969,-86.2828226389997,-86.1564108839997,-86.22075713699969,-86.1769238349997,-86.1813756359996,-86.13930218899959,-86.2499720789997],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
 <p>We can also change it so the markers are circles and control the
 color and size more directly. The base addMarkers() does not have a lot
 of customization options (although you can set icons on them). They also
@@ -5328,8 +5649,8 @@ color.</p>
 leaflet()  %&gt;%
   addTiles()  %&gt;%
   addCircleMarkers(data = facilities.spatial, popup = ~popup, color = ~pal(POPL_TYPE), stroke = 0, fillOpacity = 1, radius = 4)</code></pre>
-<div id="htmlwidget-94fc65381e57c2d39b5a" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-94fc65381e57c2d39b5a">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.3802049849996,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.2598173109997,-86.1321207709997,-86.3071817629997,-86.2955201739996,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.1776610129996,-86.2474783459997,-86.3268999889997,-86.3970284219997,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.3272693289997,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.1094910979996,-86.2955708739997,-86.2828226389997,-86.1564108839997,-86.2207571369997,-86.1769238349997,-86.1813756359996,-86.1393021889996,-86.2499720789997],4,null,null,{"interactive":true,"className":"","stroke":0,"color":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"weight":5,"opacity":0.5,"fill":true,"fillColor":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"fillOpacity":1},null,null,["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
+<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-705dc559ab3b01930e4f" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-705dc559ab3b01930e4f">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addCircleMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.38020498499959,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.25981731099969,-86.13212077099971,-86.3071817629997,-86.29552017399961,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.17766101299959,-86.2474783459997,-86.3268999889997,-86.39702842199971,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.32726932899971,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.10949109799959,-86.29557087399969,-86.2828226389997,-86.1564108839997,-86.22075713699969,-86.1769238349997,-86.1813756359996,-86.13930218899959,-86.2499720789997],4,null,null,{"interactive":true,"className":"","stroke":0,"color":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"weight":5,"opacity":0.5,"fill":true,"fillColor":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"fillOpacity":1},null,null,["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
 <p>Here, I used the colorFactor function to use a preset colorset, but
 you could also set them manually with something like palette =
 c(“green”, “yellow”, “orange”). To see all of the presets in
@@ -5352,8 +5673,8 @@ For example, the is the base imagery layer from ESRI.</p>
 <pre class="r"><code>leaflet()  %&gt;%
   addProviderTiles(providers$Esri.WorldImagery)  %&gt;%
   addCircleMarkers(data = facilities.spatial, popup = ~popup, color = ~pal(POPL_TYPE), stroke = 0, fillOpacity = 1, radius = 4)</code></pre>
-<div id="htmlwidget-2e2292d0febfc7bdd530" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-2e2292d0febfc7bdd530">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addProviderTiles","args":["Esri.WorldImagery",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addCircleMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.3802049849996,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.2598173109997,-86.1321207709997,-86.3071817629997,-86.2955201739996,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.1776610129996,-86.2474783459997,-86.3268999889997,-86.3970284219997,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.3272693289997,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.1094910979996,-86.2955708739997,-86.2828226389997,-86.1564108839997,-86.2207571369997,-86.1769238349997,-86.1813756359996,-86.1393021889996,-86.2499720789997],4,null,null,{"interactive":true,"className":"","stroke":0,"color":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"weight":5,"opacity":0.5,"fill":true,"fillColor":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"fillOpacity":1},null,null,["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
+<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-39441f1d6fdf0e9a2db4" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-39441f1d6fdf0e9a2db4">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addProviderTiles","args":["Esri.WorldImagery",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addCircleMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.38020498499959,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.25981731099969,-86.13212077099971,-86.3071817629997,-86.29552017399961,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.17766101299959,-86.2474783459997,-86.3268999889997,-86.39702842199971,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.32726932899971,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.10949109799959,-86.29557087399969,-86.2828226389997,-86.1564108839997,-86.22075713699969,-86.1769238349997,-86.1813756359996,-86.13930218899959,-86.2499720789997],4,null,null,{"interactive":true,"className":"","stroke":0,"color":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"weight":5,"opacity":0.5,"fill":true,"fillColor":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"fillOpacity":1},null,null,["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
 <p>You can find a list of all of the available provider tiles here: <a href="https://leaflet-extras.github.io/leaflet-providers/preview/">Leaflet
 Provider Demo</a>. Some may require registration and an API key, but all
 of them should be free to use for small-scale non-commercial uses. Just
@@ -5367,15 +5688,15 @@ options. baseGroups will allow one to be selected, which overlayGroups
 will allow you to turn multiple layers off and on.</p>
 <pre class="r"><code>leaflet()  %&gt;%
   addTiles(group = &quot;Basic&quot;)  %&gt;%
-  addProviderTiles(providers$Stamen.Watercolor, group = &quot;Art&quot;) %&gt;%
+  addProviderTiles(providers$Esri.NatGeoWorldMap, group = &quot;Nat Geo&quot;) %&gt;%
   addCircleMarkers(data = facilities.spatial, popup = ~popup, color = ~pal(POPL_TYPE), stroke = 0, fillOpacity = 1, radius = 4, group = &quot;Facilities&quot;) %&gt;%
   addLayersControl(
-    baseGroups = c(&quot;Basic&quot;, &quot;Art&quot;),
+    baseGroups = c(&quot;Basic&quot;, &quot;Nat Geo&quot;),
     overlayGroups= c(&quot;Facilities&quot;),
     options = layersControlOptions(collapsed = FALSE)
   )     </code></pre>
-<div id="htmlwidget-5ef1d9db6f7c0e5c0cc5" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-5ef1d9db6f7c0e5c0cc5">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,"Basic",{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addProviderTiles","args":["Stamen.Watercolor",null,"Art",{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addCircleMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.3802049849996,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.2598173109997,-86.1321207709997,-86.3071817629997,-86.2955201739996,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.1776610129996,-86.2474783459997,-86.3268999889997,-86.3970284219997,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.3272693289997,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.1094910979996,-86.2955708739997,-86.2828226389997,-86.1564108839997,-86.2207571369997,-86.1769238349997,-86.1813756359996,-86.1393021889996,-86.2499720789997],4,null,"Facilities",{"interactive":true,"className":"","stroke":0,"color":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"weight":5,"opacity":0.5,"fill":true,"fillColor":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"fillOpacity":1},null,null,["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLayersControl","args":[["Basic","Art"],"Facilities",{"collapsed":false,"autoZIndex":true,"position":"topright"}]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
+<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-212e9102f669d96c160a" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-212e9102f669d96c160a">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,"Basic",{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addProviderTiles","args":["Esri.NatGeoWorldMap",null,"Nat Geo",{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addCircleMarkers","args":[[41.6959795230005,41.6514629920005,41.6790101200005,41.6197449910005,41.5344197320005,41.5373208690005,41.6784532810005,41.5254707980005,41.6965305720005,41.6662209370004,41.6800978530005,41.6805103910005,41.6718347320005,41.6890511080005,41.5258034720005,41.7064601110005,41.6657208470005,41.6499311210005,41.6076504240005,41.6511709770005,41.6083372610005,41.6621865130005,41.7080112780005,41.7064601110005,41.6610869600005,41.6295526030005,41.7094694660005,41.6226840600005,41.6645238230005,41.6360313790005,41.7285409770005,41.6657208470005,41.7470109110005,41.5245043160004,41.6644618250005,41.6150933350005,41.7233211380005,41.6790505630005,41.6971615880005,41.7453504720005,41.6735435640005,41.7231896740005,41.6700303830005,41.7402908010005,41.7239332010005,41.6223708320005,41.6802207060005,41.6558533770005,41.6811036600005,41.7433741610005,41.6614532030005],[-86.38020498499959,-86.1309619409997,-86.3243606499997,-86.2252040219997,-86.4271202729997,-86.4278909159997,-86.2834345729997,-86.2740508479997,-86.2705801739997,-86.1778905799997,-86.25981731099969,-86.13212077099971,-86.3071817629997,-86.29552017399961,-86.1693985969997,-86.5199666759997,-86.2110210029996,-86.2815510549997,-86.2337808839997,-86.2348905319997,-86.2531160489997,-86.1793093179996,-86.3076957779996,-86.5199666759997,-86.1790424659997,-86.1526771529997,-86.17766101299959,-86.2474783459997,-86.3268999889997,-86.39702842199971,-86.2170301549997,-86.2166602729997,-86.1397200739997,-86.2765985729997,-86.0928669339997,-86.7303996379997,-86.2314809289996,-86.2540404609996,-86.32726932899971,-86.2240901889996,-86.2518768989997,-86.2920040459997,-86.10949109799959,-86.29557087399969,-86.2828226389997,-86.1564108839997,-86.22075713699969,-86.1769238349997,-86.1813756359996,-86.13930218899959,-86.2499720789997],4,null,"Facilities",{"interactive":true,"className":"","stroke":0,"color":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"weight":5,"opacity":0.5,"fill":true,"fillColor":["#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#377EB8","#377EB8","#E41A1C","#4DAF4A","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#377EB8","#377EB8","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#4DAF4A","#E41A1C","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#377EB8","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C","#E41A1C"],"fillOpacity":1},null,null,["<b>Warren Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-232-4028","<b>Mishawaka Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1704","<b>Portage Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-288-5956","<b>South Bend Fire Dept. Station #10<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1309","<b>North Liberty Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-656-3163","<b>St. Joseph Co. Public Library North Liberty Branch<\/b><br>Type: LIBRARY<br>Phone: 574-656-3644","<b>South Bend Fire Dept. Station #4<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9422","<b>St. Joseph Co. Public Library Lakeville Branch<\/b><br>Type: LIBRARY<br>Phone: 574-784-3446","<b>South Bend Fire Dept. Station #7<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9767","<b>Mishawaka EMS Station<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1675","<b>South Bend Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9602","<b>Penn North Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-259-1030","<b>South Bend Fire Dept. Station #6<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9691","<b>St. Joseph Co. Public Library LaSalle Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4633","<b>Madison Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-633-4915","<b>New Carlisle Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-654-3244","<b>South Bend Fire Dept. Station #9<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9900","<b>South Bend Fire Dept. Station #5<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9509","<b>St. Joseph Co. Public Library Centre Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-251-3700","<b>St. Joseph Co. Public Library Tutt Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4637","<b>Centre Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-291-1677","<b>Mishawaka Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-258-1768","<b>St. Joseph Co. Public Library Western Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4639","<b>New Carlisle Ambulanc<\/b><br>Type: FIRE STATION<br>Phone: 574-654-8801","<b>Mishawaka Public Library<\/b><br>Type: LIBRARY<br>Phone: 574-259-5277","<b>Penn South Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6747","<b>Mishawaka Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-247-0928","<b>South Bend Fire Dept. Station #8<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9888","<b>South Bend Police Department<\/b><br>Type: POLICE STATION<br>Phone: 574-245-6500","<b>Warren Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-289-2909","<b>St. Joseph Co. Public Library Francis Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4641","<b>St. Joseph Co. Public Library River Park Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4635","<b>Mishawaka Public Library Harris Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-3179","<b>Lakeville Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-784-2698","<b>Osceola Twp. Fire<\/b><br>Type: FIRE STATION<br>Phone: 574-674-6244","<b>Harris Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-273-8178","<b>Clay Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-3012","<b>St. Joseph County Jail<\/b><br>Type: POLICE STATION<br>Phone: 574-235-9201","<b>German Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-232-6652","<b>Clay Twp. Sta. 2<\/b><br>Type: FIRE STATION<br>Phone: 574-272-1710","<b>St. Joseph Co. Public Library Main Branch<\/b><br>Type: LIBRARY<br>Phone: 574-282-4646","<b>South Bend Fire Dept. Station #11<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9385","<b>Mishawaka Public Library Bittersweet Branch<\/b><br>Type: LIBRARY<br>Phone: 574-259-0392","<b>German Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-9828","<b>St. Joseph Co. Public Library German Township Branch<\/b><br>Type: LIBRARY<br>Phone: 574-271-5144","<b>Penn South Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-255-4433","<b>South Bend Fire Dept. Station #3<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9175","<b>Mishawaka Fire Dept. Station #1<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1674","<b>Mishawaka Fire Dept. Station #2<\/b><br>Type: FIRE STATION<br>Phone: 574-258-1697","<b>Harris Twp. Sta. 1<\/b><br>Type: FIRE STATION<br>Phone: 574-272-4499","<b>South Bend Fire Dept.<\/b><br>Type: FIRE STATION<br>Phone: 574-235-9491"],null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLayersControl","args":[["Basic","Nat Geo"],"Facilities",{"collapsed":false,"autoZIndex":true,"position":"topright"}]}],"limits":{"lat":[41.5245043160004,41.7470109110005],"lng":[-86.7303996379997,-86.0928669339997]}},"evals":[],"jsHooks":[]}</script>
 </div>
 
 
