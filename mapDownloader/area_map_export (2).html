@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Area Map Export</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root {
+    --paper: #f1efe6;
+    --ink: #23241f;
+    --ink-dim: #63645c;
+    --rule: #c9c4b0;
+    --accent: #35617d;
+    --warn: #a14e2a;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+  header { padding: 20px 24px 14px; border-bottom: 1px solid var(--rule); }
+  header h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: 0.01em; }
+  header p { margin: 0; color: var(--ink-dim); font-size: 13px; max-width: 62em; line-height: 1.5; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.9fr);
+    gap: 1px;
+    background: var(--rule);
+  }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+  .pane { background: var(--paper); padding: 16px; }
+  #map { height: 460px; border: 1px solid var(--rule); }
+  .map-toolbar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  button {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 7px 12px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  button:hover { background: var(--ink); color: var(--paper); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #294c62; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; background: var(--paper); color: var(--ink); }
+  button.active { background: var(--ink); color: var(--paper); }
+  fieldset { border: 1px solid var(--rule); border-radius: 2px; margin: 0 0 14px; padding: 10px 12px 12px; }
+  legend { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); padding: 0 4px; }
+  .bounds-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
+  .bounds-grid label { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); }
+  .bounds-grid input {
+    font-family: var(--mono); font-size: 13px; padding: 4px 6px;
+    border: 1px solid var(--rule); border-radius: 2px; background: #fff; width: 100%;
+  }
+  .center-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .layer-row { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; }
+  select {
+    font-family: var(--sans); font-size: 12.5px; padding: 5px 6px;
+    border: 1px solid var(--rule); border-radius: 2px; background: #fff; color: var(--ink);
+  }
+  .detail-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .detail-row label { font-size: 12.5px; color: var(--ink-dim); }
+  .detail-row input[type="number"] {
+    font-family: var(--mono); font-size: 12.5px; padding: 4px 6px;
+    border: 1px solid var(--rule); border-radius: 2px; background: #fff;
+  }
+  .span-note { font-family: var(--mono); font-size: 11.5px; color: var(--ink-dim); margin-top: 6px; }
+  .span-note.warn { color: var(--warn); }
+  #status { font-family: var(--mono); font-size: 12.5px; min-height: 1.4em; margin: 10px 0 0; color: var(--ink-dim); }
+  #status.error { color: var(--warn); }
+  .output-pane { padding: 16px 24px 40px; }
+  #svg-holder {
+    border: 1px solid var(--rule); background: #fff; display: flex; justify-content: center;
+    overflow: auto; min-height: 120px; align-items: center;
+  }
+  #svg-holder svg { max-width: 100%; height: auto; }
+  #svg-holder .empty { color: var(--ink-dim); font-size: 13px; padding: 30px; text-align: center; }
+  .output-toolbar { display: flex; gap: 8px; margin-top: 10px; }
+  .legend-strip { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 11.5px; color: var(--ink-dim); }
+  .legend-strip span.sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Area Map Export</h1>
+  <p>Pick an area on the map (draw a box, or enter coordinates), pull the OpenStreetMap data for it, and export a
+  line-map SVG with the exact bounds labeled on it. This queries OSM's public Overpass API directly from your
+  browser, so keep areas small (a few blocks to a neighborhood) — large areas will be slow or get rejected.</p>
+</header>
+
+<div class="layout">
+  <div class="pane">
+    <div id="map"></div>
+    <div class="map-toolbar">
+      <button id="draw-btn">Draw box on map</button>
+      <button id="use-view-btn">Use current map view</button>
+    </div>
+  </div>
+
+  <div class="pane">
+    <fieldset>
+      <legend>Bounds (decimal degrees)</legend>
+      <div class="bounds-grid">
+        <label for="in-north">north</label><input id="in-north" type="number" step="0.0001" placeholder="lat">
+        <label for="in-south">south</label><input id="in-south" type="number" step="0.0001" placeholder="lat">
+        <label for="in-east">east</label><input id="in-east" type="number" step="0.0001" placeholder="lon">
+        <label for="in-west">west</label><input id="in-west" type="number" step="0.0001" placeholder="lon">
+      </div>
+      <div class="span-note" id="span-note"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Or: center point + radius</legend>
+      <div class="center-row">
+        <input id="in-clat" type="number" step="0.0001" placeholder="lat">
+        <input id="in-clon" type="number" step="0.0001" placeholder="lon">
+        <input id="in-radius" type="number" step="10" placeholder="radius (m)" value="400">
+      </div>
+      <button id="apply-center-btn">Set bounds from center + radius</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Core layers</legend>
+      <div class="layer-row"><input type="checkbox" id="layer-streets" checked><label for="layer-streets">Streets</label></div>
+      <div class="detail-row">
+        <label for="road-detail">Road detail</label>
+        <select id="road-detail">
+          <option value="all" selected>All roads</option>
+          <option value="major">Major roads only (faster, large areas)</option>
+        </select>
+      </div>
+      <div class="layer-row"><input type="checkbox" id="layer-buildings" checked><label for="layer-buildings">Buildings</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-water" checked><label for="layer-water">Water</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-coastline"><label for="layer-coastline">Coastline</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-green" checked><label for="layer-green">Green space (parks/forest)</label></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Additional data</legend>
+      <div class="layer-row"><input type="checkbox" id="layer-hospitals"><label for="layer-hospitals">Hospitals &amp; clinics</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-schools"><label for="layer-schools">Schools</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-transit"><label for="layer-transit">Transit stops/stations</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-food"><label for="layer-food">Food access (grocery, food bank)</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-farmland"><label for="layer-farmland">Farmland</label></div>
+      <div class="layer-row"><input type="checkbox" id="layer-wetland"><label for="layer-wetland">Wetland</label></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Tiling (for large areas)</legend>
+      <div class="detail-row">
+        <label for="tile-size">Max tile size (km)</label>
+        <input id="tile-size" type="number" step="0.1" min="0.3" max="5" value="2" style="width:70px;">
+      </div>
+      <div class="span-note" id="tile-note"></div>
+    </fieldset>
+
+    <button class="primary" id="generate-btn" style="width:100%;">Generate map</button>
+    <div id="status"></div>
+  </div>
+</div>
+
+<div class="output-pane">
+  <div id="svg-holder"><div class="empty">Generated map will appear here.</div></div>
+  <div class="output-toolbar">
+    <button id="download-btn" disabled>Download SVG</button>
+  </div>
+  <div class="legend-strip" id="legend-strip"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ---------------------------------------------------------------
+// Core logic (projection, overpass query building/parsing)
+// ---------------------------------------------------------------
+const DEG_PER_METER_LAT = 1 / 111320;
+
+function bboxFromCenter(lat, lon, radiusMeters) {
+  const dLat = radiusMeters * DEG_PER_METER_LAT;
+  const dLon = (radiusMeters * DEG_PER_METER_LAT) / Math.cos((lat * Math.PI) / 180);
+  return { north: lat + dLat, south: lat - dLat, east: lon + dLon, west: lon - dLon };
+}
+
+function bboxSpanKm(bbox) {
+  const latKm = (bbox.north - bbox.south) * 111.32;
+  const midLatRad = ((bbox.north + bbox.south) / 2) * (Math.PI / 180);
+  const lonKm = (bbox.east - bbox.west) * 111.32 * Math.cos(midLatRad);
+  return { latKm, lonKm, areaKm2: latKm * lonKm };
+}
+
+// Splits a bbox into a grid of tiles, each roughly maxTileKm on a
+// side. Public Overpass instances are shared and rate/time/memory
+// limited — one request covering a whole town can fail outright no
+// matter how the tag filters are split. Many small tile requests are
+// slower in aggregate but each is far more likely to actually succeed,
+// and a single failed tile only costs that tile, not the whole map.
+function tileBBox(bbox, maxTileKm) {
+  const { latKm, lonKm } = bboxSpanKm(bbox);
+  const rows = Math.max(1, Math.ceil(latKm / maxTileKm));
+  const cols = Math.max(1, Math.ceil(lonKm / maxTileKm));
+  const latStep = (bbox.north - bbox.south) / rows;
+  const lonStep = (bbox.east - bbox.west) / cols;
+  const tiles = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      tiles.push({
+        row: r, col: c,
+        south: bbox.south + r * latStep, north: bbox.south + (r + 1) * latStep,
+        west: bbox.west + c * lonStep, east: bbox.west + (c + 1) * lonStep,
+      });
+    }
+  }
+  return tiles;
+}
+
+const LAYER_DEFS = {
+  streets: {
+    kind: "area",
+    query: (b, roadDetail) => {
+      const filter = roadDetail === "major"
+        ? `~"^(motorway|trunk|primary|secondary|tertiary)(_link)?$"`
+        : "";
+      return [`way["highway"${filter}](${b});`];
+    },
+  },
+  buildings: {
+    kind: "area",
+    query: (b) => [`way["building"](${b});`, `relation["building"](${b});`],
+  },
+  water: {
+    kind: "area",
+    query: (b) => [
+      `way["natural"="water"](${b});`,
+      `way["waterway"](${b});`,
+      `relation["natural"="water"](${b});`,
+    ],
+  },
+  coastline: {
+    kind: "area",
+    query: (b) => [`way["natural"="coastline"](${b});`],
+  },
+  green: {
+    kind: "area",
+    query: (b) => [
+      `way["leisure"="park"](${b});`,
+      `way["landuse"~"^(forest|grass|meadow|recreation_ground)$"](${b});`,
+      `way["natural"="wood"](${b});`,
+      `relation["leisure"="park"](${b});`,
+      `relation["landuse"~"^(forest|grass|meadow|recreation_ground)$"](${b});`,
+    ],
+  },
+  farmland: {
+    kind: "area",
+    query: (b) => [`way["landuse"="farmland"](${b});`, `relation["landuse"="farmland"](${b});`],
+  },
+  wetland: {
+    kind: "area",
+    query: (b) => [`way["natural"="wetland"](${b});`, `relation["natural"="wetland"](${b});`],
+  },
+  hospitals: {
+    kind: "point",
+    query: (b) => [`node["amenity"~"^(hospital|clinic)$"](${b});`, `way["amenity"~"^(hospital|clinic)$"](${b});`],
+  },
+  schools: {
+    kind: "point",
+    query: (b) => [`node["amenity"="school"](${b});`, `way["amenity"="school"](${b});`],
+  },
+  transit: {
+    kind: "point",
+    query: (b) => [
+      `node["highway"="bus_stop"](${b});`,
+      `node["railway"="station"](${b});`,
+      `node["public_transport"="stop_position"](${b});`,
+      `way["amenity"="bus_station"](${b});`,
+    ],
+  },
+  food: {
+    kind: "point",
+    query: (b) => [
+      `node["shop"~"^(supermarket|convenience)$"](${b});`,
+      `way["shop"~"^(supermarket|convenience)$"](${b});`,
+      `node["social_facility"="food_bank"](${b});`,
+    ],
+  },
+};
+
+// timeoutSeconds should match whatever the caller sets as its own
+// request timeout — a client abort shorter than the server's declared
+// timeout means giving up before Overpass itself would have.
+function buildOverpassQuery(bbox, enabledLayers, roadDetail, timeoutSeconds) {
+  const b = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
+  const timeout = timeoutSeconds || 25;
+  const lines = [];
+  for (const name of enabledLayers) {
+    const def = LAYER_DEFS[name];
+    if (!def) continue;
+    lines.push(...def.query(b, roadDetail));
+  }
+  return `[out:json][timeout:${timeout}];
+(
+${lines.map((l) => "  " + l).join("\n")}
+);
+out geom(${b});`;
+}
+
+function classifyTags(tags) {
+  if (!tags) return null;
+  if (tags.building) return "buildings";
+  if (tags.natural === "coastline") return "coastline";
+  if (tags.natural === "water" || tags.waterway) return "water";
+  if (
+    tags.leisure === "park" ||
+    tags.natural === "wood" ||
+    ["forest", "grass", "meadow", "recreation_ground"].includes(tags.landuse)
+  ) return "green";
+  if (tags.landuse === "farmland") return "farmland";
+  if (tags.natural === "wetland") return "wetland";
+  if (["hospital", "clinic"].includes(tags.amenity)) return "hospitals";
+  if (tags.amenity === "school") return "schools";
+  if (
+    tags.highway === "bus_stop" ||
+    tags.railway === "station" ||
+    tags.public_transport === "stop_position" ||
+    tags.amenity === "bus_station"
+  ) return "transit";
+  if (["supermarket", "convenience"].includes(tags.shop) || tags.social_facility === "food_bank") return "food";
+  if (tags.highway) return "streets";
+  return null;
+}
+
+function centroid(coords) {
+  let sLat = 0, sLon = 0;
+  for (const [lat, lon] of coords) { sLat += lat; sLon += lon; }
+  return [sLat / coords.length, sLon / coords.length];
+}
+
+function geometryToCoords(geometry) {
+  return (geometry || []).filter(Boolean).map((p) => [p.lat, p.lon]);
+}
+
+// Relations (multipolygons — common for large water bodies, parks,
+// and building complexes at town/city scale) are approximated by
+// taking each "outer" member ring as its own shape and skipping
+// "inner" members (holes). An island in a lake may render solid; a
+// deliberate simplification given how much more common multipolygons
+// get once features are large.
+function parseOverpassResponse(json) {
+  const layers = {};
+  for (const name of Object.keys(LAYER_DEFS)) layers[name] = [];
+
+  for (const el of json.elements) {
+    if (el.type === "node") {
+      const layer = classifyTags(el.tags);
+      if (layer && LAYER_DEFS[layer].kind === "point") layers[layer].push([el.lat, el.lon]);
+      continue;
+    }
+
+    if (el.type === "way") {
+      const layer = classifyTags(el.tags);
+      if (!layer) continue;
+      const coords = geometryToCoords(el.geometry);
+      if (coords.length < 2) continue;
+      if (LAYER_DEFS[layer].kind === "point") layers[layer].push(centroid(coords));
+      else layers[layer].push(coords);
+      continue;
+    }
+
+    if (el.type === "relation") {
+      const layer = classifyTags(el.tags);
+      if (!layer) continue;
+      const outerCoordSets = [];
+      for (const member of el.members || []) {
+        if (member.type !== "way") continue;
+        if (member.role && member.role !== "outer") continue;
+        const coords = geometryToCoords(member.geometry);
+        if (coords.length >= 2) outerCoordSets.push(coords);
+      }
+      if (outerCoordSets.length === 0) continue;
+      if (LAYER_DEFS[layer].kind === "point") layers[layer].push(centroid(outerCoordSets.flat()));
+      else for (const coords of outerCoordSets) layers[layer].push(coords);
+    }
+  }
+
+  return layers;
+}
+
+function makeProjector(bbox, svgWidth, margin) {
+  const centerLatRad = ((bbox.north + bbox.south) / 2) * (Math.PI / 180);
+  const cosLat = Math.cos(centerLatRad);
+  const lonSpan = bbox.east - bbox.west;
+  const latSpan = bbox.north - bbox.south;
+  const innerWidth = svgWidth - margin * 2;
+  const scale = innerWidth / (lonSpan * cosLat);
+  const svgHeight = latSpan * scale + margin * 2;
+  function project([lat, lon]) {
+    return [margin + (lon - bbox.west) * cosLat * scale, margin + (bbox.north - lat) * scale];
+  }
+  return { project, svgHeight, scale, cosLat };
+}
+
+// ---------------------------------------------------------------
+// SVG rendering
+// ---------------------------------------------------------------
+const SVG_NS = "http://www.w3.org/2000/svg";
+function fmtCoord(v) { return v.toFixed(5); }
+
+const AREA_STYLES = {
+  green: { fill: "#e6efe0", stroke: "#b9cdae", strokeWidth: 0.6 },
+  water: { fill: "#d9e8f5", stroke: "#a7c6dd", strokeWidth: 0.6 },
+  // coastline is a boundary line, not a fillable shape (it rarely
+  // closes within a small bbox) — no fill even if the path happens to close
+  coastline: { fill: "none", stroke: "#3f766d", strokeWidth: 1.3 },
+  farmland: { fill: "#f2ecd6", stroke: "#d6c79c", strokeWidth: 0.6 },
+  wetland: { fill: "#dcefe6", stroke: "#a7cdb8", strokeWidth: 0.6 },
+  buildings: { fill: "none", stroke: "#555555", strokeWidth: 0.5 },
+  streets: { fill: "none", stroke: "#232323", strokeWidth: 1.1 },
+};
+// area layers drawn in this order (back to front)
+const AREA_ORDER = ["green", "farmland", "wetland", "water", "coastline", "buildings", "streets"];
+
+const POINT_STYLES = {
+  hospitals: { fill: "#c0392b", label: "H" },
+  schools: { fill: "#6a4c93", label: "S" },
+  transit: { fill: "#2a6f97", label: "T" },
+  food: { fill: "#c07f1f", label: "F" },
+};
+const POINT_NAMES = {
+  hospitals: "Hospital/clinic", schools: "School", transit: "Transit", food: "Food access",
+};
+
+function buildSVG(layers, bbox, enabledLayers) {
+  const width = 1000;
+  const margin = 46;
+  const { project, svgHeight } = makeProjector(bbox, width, margin);
+  const enabled = new Set(enabledLayers);
+
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("xmlns", SVG_NS);
+  svg.setAttribute("viewBox", `0 0 ${width} ${svgHeight}`);
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", Math.round(svgHeight));
+  svg.style.background = "#ffffff";
+
+  function pathFor(coords) {
+    return coords.map(project).map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+  }
+  function isClosed(coords) {
+    const [a, b] = [coords[0], coords[coords.length - 1]];
+    return coords.length > 2 && a[0] === b[0] && a[1] === b[1];
+  }
+
+  for (const name of AREA_ORDER) {
+    if (!enabled.has(name)) continue;
+    const style = AREA_STYLES[name];
+    for (const coords of layers[name] || []) {
+      const closed = isClosed(coords);
+      const el = document.createElementNS(SVG_NS, "path");
+      el.setAttribute("d", pathFor(coords) + (closed ? " Z" : ""));
+      el.setAttribute("fill", closed ? style.fill : "none");
+      el.setAttribute("stroke", style.stroke);
+      el.setAttribute("stroke-width", style.strokeWidth);
+      el.setAttribute("stroke-linejoin", "round");
+      svg.appendChild(el);
+    }
+  }
+
+  for (const name of Object.keys(POINT_STYLES)) {
+    if (!enabled.has(name)) continue;
+    const style = POINT_STYLES[name];
+    for (const point of layers[name] || []) {
+      const [x, y] = project(point);
+      const circle = document.createElementNS(SVG_NS, "circle");
+      circle.setAttribute("cx", x.toFixed(2));
+      circle.setAttribute("cy", y.toFixed(2));
+      circle.setAttribute("r", 5);
+      circle.setAttribute("fill", style.fill);
+      circle.setAttribute("stroke", "#ffffff");
+      circle.setAttribute("stroke-width", 1);
+      svg.appendChild(circle);
+      const text = document.createElementNS(SVG_NS, "text");
+      text.setAttribute("x", x.toFixed(2));
+      text.setAttribute("y", y.toFixed(2));
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "central");
+      text.setAttribute("font-family", "monospace");
+      text.setAttribute("font-size", "6.5");
+      text.setAttribute("fill", "#ffffff");
+      text.textContent = style.label;
+      svg.appendChild(text);
+    }
+  }
+
+  const border = document.createElementNS(SVG_NS, "rect");
+  border.setAttribute("x", margin);
+  border.setAttribute("y", margin);
+  border.setAttribute("width", width - margin * 2);
+  border.setAttribute("height", svgHeight - margin * 2);
+  border.setAttribute("fill", "none");
+  border.setAttribute("stroke", "#333333");
+  border.setAttribute("stroke-width", 1.2);
+  svg.appendChild(border);
+
+  function label(x, y, text, anchor, baseline) {
+    const t = document.createElementNS(SVG_NS, "text");
+    t.setAttribute("x", x);
+    t.setAttribute("y", y);
+    t.setAttribute("text-anchor", anchor);
+    t.setAttribute("dominant-baseline", baseline);
+    t.setAttribute("font-family", "monospace");
+    t.setAttribute("font-size", "11");
+    t.setAttribute("fill", "#333333");
+    t.textContent = text;
+    svg.appendChild(t);
+  }
+
+  const innerLeft = margin, innerRight = width - margin;
+  const innerTop = margin, innerBottom = svgHeight - margin;
+  label(innerLeft, innerTop - 8, `N ${fmtCoord(bbox.north)}`, "start", "auto");
+  label(innerLeft, innerBottom + 16, `S ${fmtCoord(bbox.south)}`, "start", "hanging");
+  label(innerRight, innerTop - 8, `E ${fmtCoord(bbox.east)}`, "end", "auto");
+  label(innerRight, innerBottom + 16, `W ${fmtCoord(bbox.west)}`, "end", "hanging");
+
+  return svg;
+}
+
+// ---------------------------------------------------------------
+// UI wiring
+// ---------------------------------------------------------------
+const statusEl = document.getElementById("status");
+const spanNoteEl = document.getElementById("span-note");
+const tileNoteEl = document.getElementById("tile-note");
+const svgHolder = document.getElementById("svg-holder");
+const downloadBtn = document.getElementById("download-btn");
+const legendStrip = document.getElementById("legend-strip");
+const tileSizeInput = document.getElementById("tile-size");
+
+const inputs = {
+  north: document.getElementById("in-north"),
+  south: document.getElementById("in-south"),
+  east: document.getElementById("in-east"),
+  west: document.getElementById("in-west"),
+};
+
+const LAYER_CHECKBOX_IDS = {
+  streets: "layer-streets", buildings: "layer-buildings", water: "layer-water", coastline: "layer-coastline",
+  green: "layer-green", hospitals: "layer-hospitals", schools: "layer-schools", transit: "layer-transit",
+  food: "layer-food", farmland: "layer-farmland", wetland: "layer-wetland",
+};
+
+function enabledLayerNames() {
+  return Object.entries(LAYER_CHECKBOX_IDS)
+    .filter(([, id]) => document.getElementById(id).checked)
+    .map(([name]) => name);
+}
+
+Object.values(LAYER_CHECKBOX_IDS).forEach((id) => {
+  document.getElementById(id).addEventListener("change", () => {
+    const bbox = currentBBox();
+    if (bbox) updateTileNote(bbox);
+  });
+});
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg || "";
+  statusEl.className = isError ? "error" : "";
+}
+
+function currentBBox() {
+  const north = parseFloat(inputs.north.value);
+  const south = parseFloat(inputs.south.value);
+  const east = parseFloat(inputs.east.value);
+  const west = parseFloat(inputs.west.value);
+  if ([north, south, east, west].some((v) => Number.isNaN(v))) return null;
+  if (north <= south || east <= west) return null;
+  return { north, south, east, west };
+}
+
+function updateSpanNote() {
+  const bbox = currentBBox();
+  if (!bbox) { spanNoteEl.textContent = ""; tileNoteEl.textContent = ""; return; }
+  const { latKm, lonKm, areaKm2 } = bboxSpanKm(bbox);
+  spanNoteEl.textContent = `~${latKm.toFixed(2)} km x ${lonKm.toFixed(2)} km (${areaKm2.toFixed(2)} km²)`;
+  spanNoteEl.className = areaKm2 > 4 ? "span-note warn" : "span-note";
+  if (areaKm2 > 4) spanNoteEl.textContent += " — large area: tiling will kick in automatically";
+  updateTileNote(bbox);
+}
+
+function updateTileNote(bbox) {
+  const tileKm = parseFloat(tileSizeInput.value);
+  if (!bbox || Number.isNaN(tileKm) || tileKm <= 0) { tileNoteEl.textContent = ""; return; }
+  const tiles = tileBBox(bbox, tileKm);
+  const rows = Math.max(...tiles.map((t) => t.row)) + 1;
+  const cols = Math.max(...tiles.map((t) => t.col)) + 1;
+  const enabled = enabledLayerNames();
+  const requestCount = tiles.length * Math.max(1, enabled.length);
+  tileNoteEl.textContent = tiles.length === 1
+    ? "1 tile — small enough to fetch in a single request per layer."
+    : `${tiles.length} tiles (${rows} x ${cols}) — up to ${requestCount} requests total across ${enabled.length || 0} layer(s).`;
+}
+
+tileSizeInput.addEventListener("input", () => {
+  const bbox = currentBBox();
+  if (bbox) updateTileNote(bbox);
+});
+
+["north", "south", "east", "west"].forEach((k) => {
+  inputs[k].addEventListener("input", () => { updateSpanNote(); syncRectFromInputs(); });
+});
+
+// ---- Leaflet map + box drawing ----
+const map = L.map("map", { zoomControl: true }).setView([20, 0], 3);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors",
+  maxZoom: 19,
+}).addTo(map);
+
+let rectLayer = null;
+let drawing = false;
+let startLatLng = null;
+
+function setRect(bounds) {
+  if (rectLayer) map.removeLayer(rectLayer);
+  rectLayer = L.rectangle(bounds, { color: "#35617d", weight: 2, fillOpacity: 0.08 }).addTo(map);
+}
+
+function syncInputsFromBounds(bounds) {
+  inputs.north.value = bounds.getNorth().toFixed(5);
+  inputs.south.value = bounds.getSouth().toFixed(5);
+  inputs.east.value = bounds.getEast().toFixed(5);
+  inputs.west.value = bounds.getWest().toFixed(5);
+  updateSpanNote();
+}
+
+function syncRectFromInputs() {
+  const bbox = currentBBox();
+  if (!bbox) return;
+  setRect(L.latLngBounds([bbox.south, bbox.west], [bbox.north, bbox.east]));
+}
+
+const drawBtn = document.getElementById("draw-btn");
+drawBtn.addEventListener("click", () => {
+  drawing = !drawing;
+  drawBtn.classList.toggle("active", drawing);
+  drawBtn.textContent = drawing ? "Click-drag on map…" : "Draw box on map";
+  map.dragging[drawing ? "disable" : "enable"]();
+});
+
+map.on("mousedown", (e) => {
+  if (!drawing) return;
+  startLatLng = e.latlng;
+  setRect(L.latLngBounds(startLatLng, startLatLng));
+});
+map.on("mousemove", (e) => {
+  if (!drawing || !startLatLng) return;
+  setRect(L.latLngBounds(startLatLng, e.latlng));
+});
+map.on("mouseup", (e) => {
+  if (!drawing || !startLatLng) return;
+  const bounds = L.latLngBounds(startLatLng, e.latlng);
+  setRect(bounds);
+  syncInputsFromBounds(bounds);
+  startLatLng = null;
+  drawing = false;
+  drawBtn.classList.remove("active");
+  drawBtn.textContent = "Draw box on map";
+  map.dragging.enable();
+});
+
+document.getElementById("use-view-btn").addEventListener("click", () => {
+  const b = map.getBounds();
+  setRect(b);
+  syncInputsFromBounds(b);
+});
+
+document.getElementById("apply-center-btn").addEventListener("click", () => {
+  const lat = parseFloat(document.getElementById("in-clat").value);
+  const lon = parseFloat(document.getElementById("in-clon").value);
+  const radius = parseFloat(document.getElementById("in-radius").value);
+  if ([lat, lon, radius].some((v) => Number.isNaN(v))) {
+    setStatus("Enter a valid center lat/lon and radius first.", true);
+    return;
+  }
+  const bbox = bboxFromCenter(lat, lon, radius);
+  inputs.north.value = bbox.north.toFixed(5);
+  inputs.south.value = bbox.south.toFixed(5);
+  inputs.east.value = bbox.east.toFixed(5);
+  inputs.west.value = bbox.west.toFixed(5);
+  updateSpanNote();
+  syncRectFromInputs();
+  map.fitBounds(L.latLngBounds([bbox.south, bbox.west], [bbox.north, bbox.east]));
+  setStatus("Bounds set from center + radius.");
+});
+
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 14),
+    () => {}
+  );
+}
+
+// ---- Generate / fetch / render ----
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+
+let lastSVG = null;
+
+// Cache raw Overpass responses by exact query text. Since each layer
+// is now its own query (see below), adding one more layer and
+// regenerating reuses the cached responses for every layer already
+// fetched — only the new one hits the network.
+const overpassCache = new Map();
+
+// Server-declared timeout and the client's own abort must agree, with
+// the client set a bit *higher* — aborting before Overpass's own
+// timeout would have fired just throws away work in progress.
+const OVERPASS_TIMEOUT_SECONDS = 40;
+const OVERPASS_TIMEOUT_MS = (OVERPASS_TIMEOUT_SECONDS + 5) * 1000;
+
+async function fetchOverpass(query) {
+  if (overpassCache.has(query)) return overpassCache.get(query);
+
+  let lastErr;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "data=" + encodeURIComponent(query),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`${endpoint} responded ${res.status}`);
+      const json = await res.json();
+      overpassCache.set(query, json);
+      return json;
+    } catch (err) {
+      lastErr = err.name === "AbortError"
+        ? new Error(`timed out after ${OVERPASS_TIMEOUT_MS / 1000}s`)
+        : err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastErr;
+}
+
+function renderLegend(enabled) {
+  legendStrip.innerHTML = "";
+  for (const name of Object.keys(POINT_STYLES)) {
+    if (!enabled.includes(name)) continue;
+    const el = document.createElement("span");
+    el.innerHTML = `<span class="sw" style="background:${POINT_STYLES[name].fill}"></span>${POINT_STYLES[name].label} = ${POINT_NAMES[name]}`;
+    legendStrip.appendChild(el);
+  }
+  if (enabled.includes("coastline")) {
+    const el = document.createElement("span");
+    el.innerHTML = `<span class="sw" style="background:${AREA_STYLES.coastline.stroke}; border-radius:0; width:12px; height:2px;"></span>Coastline`;
+    legendStrip.appendChild(el);
+  }
+}
+
+// Runs async jobs with at most `limit` running concurrently. Public
+// Overpass instances are shared and rate-limit concurrent connections
+// per client, so this stays modest — enough to cut wall-clock time on
+// a big tile grid without hammering the server.
+async function runWithConcurrency(jobs, limit, worker) {
+  let cursor = 0;
+  async function runNext() {
+    while (cursor < jobs.length) {
+      const i = cursor++;
+      await worker(jobs[i], i);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, jobs.length) }, runNext);
+  await Promise.all(workers);
+}
+
+// Fetches by tiling the bbox into small cells and fetching each
+// (tile, layer) pair as its own request. At town/city scale, a single
+// request covering the whole area can fail outright (timeout, or an
+// Overpass memory limit) no matter how the tag filters are split —
+// the fix is to also split by area. A few tiles failing only costs
+// those tiles; the rest of the map still renders, and the summary
+// reports exactly which tiles were missed per layer.
+document.getElementById("generate-btn").addEventListener("click", async () => {
+  const bbox = currentBBox();
+  if (!bbox) {
+    setStatus("Set valid bounds first (draw a box, use the current view, or enter numbers).", true);
+    return;
+  }
+  const enabled = enabledLayerNames();
+  if (enabled.length === 0) {
+    setStatus("Turn on at least one layer.", true);
+    return;
+  }
+  const roadDetail = document.getElementById("road-detail").value;
+  const tileKm = parseFloat(tileSizeInput.value) || 2;
+  const tiles = tileBBox(bbox, tileKm);
+
+  downloadBtn.disabled = true;
+  const layers = {};
+  for (const name of Object.keys(LAYER_DEFS)) layers[name] = [];
+  const tileStats = {}; // per layer: { ok, total }
+  for (const name of enabled) tileStats[name] = { ok: 0, total: tiles.length };
+
+  const jobs = [];
+  for (const tile of tiles) for (const name of enabled) jobs.push({ tile, name });
+
+  let completed = 0;
+  const CONCURRENCY = 3;
+  await runWithConcurrency(jobs, CONCURRENCY, async ({ tile, name }) => {
+    try {
+      const query = buildOverpassQuery(tile, [name], roadDetail, OVERPASS_TIMEOUT_SECONDS);
+      const json = await fetchOverpass(query);
+      const parsed = parseOverpassResponse(json)[name];
+      layers[name] = layers[name].concat(parsed);
+      tileStats[name].ok += 1;
+    } catch (err) {
+      // one tile failing doesn't stop the others
+    } finally {
+      completed += 1;
+      setStatus(`Fetching… ${completed}/${jobs.length} requests (${tiles.length} tile${tiles.length === 1 ? "" : "s"} x ${enabled.length} layer${enabled.length === 1 ? "" : "s"})`);
+    }
+  });
+
+  const succeeded = enabled.filter((name) => tileStats[name].ok > 0);
+  if (succeeded.length === 0) {
+    setStatus("Every layer failed on every tile. Try a smaller area or fewer layers.", true);
+    return;
+  }
+
+  setStatus("Rendering…");
+  const svg = buildSVG(layers, bbox, succeeded);
+  svgHolder.innerHTML = "";
+  svgHolder.appendChild(svg);
+  renderLegend(succeeded);
+  lastSVG = svg;
+  downloadBtn.disabled = false;
+
+  const summary = enabled.map((name) => {
+    const { ok, total } = tileStats[name];
+    const count = layers[name].length;
+    return total > 1 ? `${name}: ${count} (${ok}/${total} tiles)` : `${name}: ${count}`;
+  }).join(", ");
+  const anyPartial = enabled.some((name) => tileStats[name].ok < tileStats[name].total);
+  let msg = `Done — ${summary}`;
+  if (anyPartial) msg += " — some tiles failed; affected layers are incomplete. Try a smaller tile size or area.";
+  setStatus(msg, anyPartial);
+});
+
+downloadBtn.addEventListener("click", () => {
+  if (!lastSVG) return;
+  const serializer = new XMLSerializer();
+  const src = serializer.serializeToString(lastSVG);
+  const blob = new Blob([src], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "area_map.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
