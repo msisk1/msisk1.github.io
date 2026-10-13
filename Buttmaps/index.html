@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buttmap: place names by gazetteer</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#fff; --ink:#1c2430; --muted:#667085; --line:#e2e5ea; --accent:#1b6ca8;
+  --census:#1b6ca8; --gnis:#3a9d5d; --osm:#c2410c;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.top{background:var(--panel);border-bottom:1px solid var(--line);padding:14px 20px}
+.top h1{margin:0;font-size:1.2rem;letter-spacing:.01em}
+.top p{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.loading{padding:48px 20px;text-align:center;color:var(--muted)}
+.loading.err{color:#b42318;max-width:42rem;margin:auto;text-align:left}
+.loading code{background:#eef0f3;padding:1px 5px;border-radius:4px}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+.side{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;align-self:start;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+.side h2{font-size:.95rem;margin:0}
+.side-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.side-head button{font:inherit;font-size:.8rem;border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;margin-left:4px}
+.termlist{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 8px;margin-bottom:14px}
+.chk{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer}
+.chk .tname{flex:1}
+.muted{color:var(--muted);font-size:.85rem}
+.switch{display:flex;align-items:center;gap:10px;margin:10px 0;cursor:pointer}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.switch .track{flex:none;width:36px;height:20px;border-radius:20px;background:#c5cad3;position:relative;transition:background .15s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked+.track{background:var(--accent)}
+.switch input:checked+.track::after{transform:translateX(16px)}
+.switch input:focus-visible+.track{outline:2px solid var(--accent);outline-offset:2px}
+.hint{color:var(--muted);font-size:.85rem;margin:12px 0}
+.btn{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;width:100%}
+.btn:hover{background:#f0f2f5}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 14px 12px}
+.card-head{display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600}
+.card .big{margin-top:2px}
+.card .num{font-size:1.9rem;font-weight:650;font-variant-numeric:tabular-nums}
+.card .desc{margin:6px 0 0;color:var(--muted);font-size:.84rem}
+.card.off{opacity:.55}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 8px;overflow-x:auto}
+.tabs button{font:inherit;background:none;border:0;border-bottom:3px solid transparent;padding:11px 14px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.pane{padding:14px}
+.pane[hidden]{display:none}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:10px}
+.row label{display:flex;align-items:center;gap:6px}
+select,input[type=search]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+input[type=search]{min-width:260px}
+.mapwrap{position:relative}
+#map,#cmap{height:min(66vh,620px);min-height:380px;border-radius:8px;border:1px solid var(--line)}
+.mapnote{position:absolute;left:10px;bottom:10px;z-index:500;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:.82rem}
+.cgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px}
+.legend{background:rgba(255,255,255,.93);padding:8px 10px;border-radius:6px;border:1px solid var(--line);font-size:.8rem;line-height:1.5}
+.legend b{display:block;margin-bottom:2px}
+.legend i{display:inline-block;width:14px;height:12px;margin-right:6px;vertical-align:-1px}
+.top20 h3{margin:0 0 2px;font-size:1rem}
+.top20 p{margin:0 0 8px;color:var(--muted);font-size:.85rem}
+.t20{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) 4.6rem;gap:3px 8px;align-items:center;font-size:.85rem}
+.t20 .lab{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t20 .bar{background:#c2410c;color:#fff;border-radius:3px;padding:0 6px;min-height:18px;line-height:18px;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+.t20 .val{font-variant-numeric:tabular-nums;color:var(--muted)}
+.tblwrap{overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.data{border-collapse:collapse;width:100%;font-size:.9rem}
+table.data th,table.data td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left}
+table.data td.n,table.data th.n{text-align:right;font-variant-numeric:tabular-nums}
+table.data th{position:sticky;top:0;background:#f7f8fa;cursor:pointer;user-select:none;white-space:nowrap}
+table.data th[aria-sort=ascending]::after{content:" \25B2";font-size:.7em}
+table.data th[aria-sort=descending]::after{content:" \25BC";font-size:.7em}
+table.data tbody tr:hover{background:#f7f9fc}
+.pager{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:10px;font-size:.88rem}
+.pager button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 10px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.legend-row{display:flex;gap:14px;margin-bottom:10px;font-size:.88rem}
+.legend-row i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.brow{display:grid;grid-template-columns:7rem 1fr 5rem;gap:10px;align-items:center;margin:4px 0;font-size:.9rem}
+.brow .bl{text-align:right}
+.btrack{height:20px}
+.bfill{height:100%;display:flex;border-radius:3px;overflow:hidden;min-width:2px}
+.bfill span{display:block}
+.brow .bv{font-variant-numeric:tabular-nums;color:var(--muted)}
+.empty{color:var(--muted);padding:24px 4px}
+.about{max-width:56rem}
+.about h4{margin:18px 0 6px;font-size:1rem}
+.about table{border-collapse:collapse;width:100%;font-size:.88rem;margin:6px 0}
+.about th,.about td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.about td.n,.about th.n{text-align:right;font-variant-numeric:tabular-nums}
+.about ul{padding-left:1.2rem}
+.about li{margin:4px 0}
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;max-height:none}
+  .cards{grid-template-columns:minmax(0,1fr)}
+  .cgrid{grid-template-columns:minmax(0,1fr)}
+  .termlist{max-height:180px}
+  .brow{grid-template-columns:5rem 1fr 4rem}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Buttmap</h1>
+  <p>Place names containing butt-related words, compared across three US gazetteers</p>
+</header>
+
+<div id="loading" class="loading">Loading data...</div>
+
+<div class="layout" id="app" hidden>
+  <aside class="side">
+    <div class="side-head">
+      <h2>Terms</h2>
+      <span><button id="t-all" type="button">All</button><button id="t-none" type="button">None</button></span>
+    </div>
+    <div id="termlist" class="termlist"></div>
+    <label class="switch"><input type="checkbox" id="pop"><span class="track"></span><span>Populated places only (like Census)</span></label>
+    <label class="switch"><input type="checkbox" id="nsfw"><span class="track"></span><span>Include NSFW terms</span></label>
+    <p class="hint">Tick or untick a gazetteer card to include or exclude it.</p>
+    <button class="btn" id="dl" type="button">Download filtered CSV</button>
+  </aside>
+
+  <main>
+    <section class="cards" id="cards"></section>
+    <div class="panel">
+      <div class="tabs" role="tablist" id="tabs">
+        <button role="tab" data-tab="map" aria-selected="true">Map</button>
+        <button role="tab" data-tab="counties" aria-selected="false">Counties</button>
+        <button role="tab" data-tab="names" aria-selected="false">Names</button>
+        <button role="tab" data-tab="terms" aria-selected="false">Terms</button>
+        <button role="tab" data-tab="about" aria-selected="false">About</button>
+      </div>
+
+      <div class="pane" id="pane-map">
+        <div class="row">
+          <label><input type="checkbox" id="l-heat" checked> Heatmap</label>
+          <label><input type="checkbox" id="l-pts"> Points</label>
+          <span class="muted">One dot per place. A place found in several gazetteers is drawn once.</span>
+        </div>
+        <div class="mapwrap"><div id="map"></div><div id="mapnote" class="mapnote" hidden></div></div>
+      </div>
+
+      <div class="pane" id="pane-counties" hidden>
+        <div class="row">
+          <label>Scale by
+            <select id="metric">
+              <option value="names">Per 1,000 place names</option>
+              <option value="pop">Per 100,000 residents</option>
+              <option value="count">Raw count</option>
+            </select>
+          </label>
+        </div>
+        <div class="cgrid">
+          <div><div id="cmap"></div></div>
+          <div class="top20" id="ctop"></div>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-names" hidden>
+        <p class="muted" style="margin-top:0">Every matching place name, ranked by how many butt words it contains, then by how many places share it. Click a column to sort. Counts are places in each gazetteer.</p>
+        <div class="row">
+          <input type="search" id="nq" placeholder="Search names or butt words" aria-label="Search names or butt words">
+          <label>Rows <select id="psize"><option>25</option><option>50</option><option>100</option></select></label>
+        </div>
+        <div class="tblwrap"><table class="data" id="ntable"></table></div>
+        <div class="pager">
+          <span id="pinfo"></span>
+          <span>
+            <button id="p-first" type="button">First</button>
+            <button id="p-prev" type="button">Prev</button>
+            <button id="p-next" type="button">Next</button>
+            <button id="p-last" type="button">Last</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-terms" hidden>
+        <div class="legend-row" id="tlegend"></div>
+        <div id="bars"></div>
+      </div>
+
+      <div class="pane" id="pane-about" hidden>
+        <div class="about">
+          <h4>What this is</h4>
+          <p>Place names that contain a butt-related term, compared across three US gazetteers. A gazetteer is a directory of place names with coordinates. Every place here matched a list of about 20 terms. The data were prepared in R and this page runs entirely in your browser.</p>
+
+          <h4>Data sources</h4>
+          <table>
+            <thead><tr><th>Source</th><th>Who makes it</th><th>What is in it</th><th>Things to know</th></tr></thead>
+            <tbody>
+              <tr><td><b>Census</b></td><td>US Census Bureau, via the <code>tigris</code> R package</td>
+                <td>Incorporated places (cities, towns, villages) and Census Designated Places, from the 2020 cartographic boundary files. Each place is placed at a point guaranteed to fall inside its boundary.</td>
+                <td>Smallest of the three, and the most formal. These are populated places, so you will not find creeks, hills or lakes here.</td></tr>
+              <tr><td><b>GNIS</b></td><td>US Geological Survey, for the US Board on Geographic Names</td>
+                <td>The Domestic Names file: the official federal record of names for both cultural features (towns, schools, churches, parks) and physical ones (summits, streams, valleys, lakes).</td>
+                <td>By far the largest source, with over two million features. It includes historical names and features that no longer exist. Public domain. <a href="https://www.usgs.gov/tools/geographic-names-information-system-gnis" target="_blank" rel="noopener">USGS GNIS</a></td></tr>
+              <tr><td><b>OSM</b></td><td>OpenStreetMap contributors, packaged by <a href="https://osmnames.org/" target="_blank" rel="noopener">OSMNames</a></td>
+                <td>Names from the OpenStreetMap planet file, US rows only. Roads, buildings and shops are removed; only place, natural, waterway and boundary features are kept.</td>
+                <td>Crowdsourced, so it holds local and informal names the official sources lack, and the same real place is often listed more than once. Licensed under the ODbL.</td></tr>
+            </tbody>
+          </table>
+
+          <h4>Supporting data for the Counties tab</h4>
+          <ul>
+            <li><b>County boundaries</b>: 2020 cartographic boundaries from the Census Bureau (<code>tigris</code>), simplified for the web. Each place is assigned to the county that contains it.</li>
+            <li><b>Population</b>: 2020 decennial census total population (table P1_001N, <code>tidycensus</code>).</li>
+            <li><b>Place name totals</b>: for each county, the total number of names of any kind in each gazetteer. This is the denominator for the "per 1,000 place names" measure, so a county is not ranked high just because it has lots of named features.</li>
+          </ul>
+
+          <h4>How it works</h4>
+          <ul>
+            <li>The three cards at the top are also the gazetteer checkboxes. Each shows the places displayed after your filters, out of the total matching places in that gazetteer.</li>
+            <li>The Terms box starts with every term selected. Untick a term to drop it everywhere.</li>
+            <li><b>Populated places only</b> keeps the Census places, GNIS populated places and Census designated places, and OSM cities, towns, villages and hamlets. This makes GNIS and OSM comparable to Census by dropping creeks, summits and other natural features.</li>
+            <li>The Terms filter and the Terms chart count each name once, under the first butt word found in it. The Names tab shows every butt word in a name and ranks names by how many they contain.</li>
+            <li>Repeats: the same real place can appear several times in one gazetteer, especially OSM. Rows with the same name within about 5 km are counted once. The map shows one point per place, merging the same place across the checked gazetteers.</li>
+            <li>Counties: the Counties tab colors each county by matching places per 1,000 place names in that county, per 100,000 residents, or as a raw count. Counties with very few names or people can swing widely.</li>
+          </ul>
+
+          <h4>Summary (all terms, before filters)</h4>
+          <div id="summary"></div>
+          <p class="muted">The NSFW switch controls the terms flagged as NSFW when the data were prepared.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+(async function () {
+  "use strict";
+  const $ = (s, el) => (el || document).querySelector(s);
+  const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+  const fmt = n => Math.round(n).toLocaleString("en-US");
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const debounce = (f, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
+  const SRC = ["Census", "GNIS", "OSM"];
+  const COL = ["#1b6ca8", "#3a9d5d", "#c2410c"];
+
+  // ---------- load ----------
+  let D, G;
+  try {
+    const [a, b] = await Promise.all([fetch("data.json"), fetch("counties.geojson")]);
+    if (!a.ok || !b.ok) throw new Error("not found");
+    D = await a.json();
+    G = await b.json();
+  } catch (e) {
+    const el = $("#loading");
+    el.className = "loading err";
+    el.innerHTML = "Could not load <code>data.json</code> and <code>counties.geojson</code> from this folder. " +
+      "If you opened this file by double-clicking it, serve the folder instead, for example with " +
+      "<code>httpuv::runStaticServer(\".\")</code> in R, or put the files on GitHub Pages.";
+    return;
+  }
+
+  // ---------- data as typed arrays ----------
+  const terms = D.meta.terms, nT = terms.length, nsfw = new Set(D.meta.nsfw);
+  const geoid = D.meta.county_geoid, nC = geoid.length;
+  const names = D.names.name.map(x => x == null ? "" : String(x)), nameWhich = D.names.which.map(x => x == null ? "" : String(x)), nNames = names.length;
+  const nameWords = Uint8Array.from(D.names.words), nameTerm = Uint8Array.from(D.names.term);
+  const pLon = Float32Array.from(D.places.lon), pLat = Float32Array.from(D.places.lat);
+  const pName = Int32Array.from(D.places.name), pCounty = Int16Array.from(D.places.county);
+  const nP = pLon.length;
+  const rPlace = Int32Array.from(D.rows.place), rSrc = Uint8Array.from(D.rows.src), rPop = Uint8Array.from(D.rows.pop);
+  const nR = rPlace.length;
+  D = null;
+
+  // static totals
+  const total = [0, 0, 0], popTotal = [0, 0, 0];
+  const termAll = new Int32Array(nT), nameAll = new Int32Array(nNames * 3);
+  for (let r = 0; r < nR; r++) {
+    const s = rSrc[r], n = pName[rPlace[r]];
+    total[s]++; popTotal[s] += rPop[r];
+    termAll[nameTerm[n]]++; nameAll[n * 3 + s]++;
+  }
+
+  // counties
+  const gIndex = new Map(geoid.map((g, i) => [g, i]));
+  const cPop = new Float64Array(nC), cTot = new Float64Array(nC * 3), cLabel = new Array(nC).fill("");
+  for (const f of G.features) {
+    const p = f.properties, i = gIndex.get(p.GEOID);
+    if (i === undefined) continue;
+    p._i = i;
+    cPop[i] = +p.pop || 0;
+    cTot[i * 3] = +p.total_Census || 0; cTot[i * 3 + 1] = +p.total_GNIS || 0; cTot[i * 3 + 2] = +p.total_OSM || 0;
+    cLabel[i] = p.label || p.GEOID;
+  }
+
+  // ---------- state ----------
+  const state = {
+    src: [true, true, true], terms: new Set(), pop: false, nsfw: false,
+    metric: "names", heat: true, pts: false, tab: "map",
+    q: "", sortKey: "words", sortDir: -1, page: 0, pageSize: 25
+  };
+  terms.forEach((t, i) => { if (!nsfw.has(t)) state.terms.add(i); });
+
+  const mark = new Uint8Array(nP), smask = new Uint8Array(nP);
+  const cardCount = [0, 0, 0];
+  const termSrc = new Int32Array(nT * 3), nameSrc = new Int32Array(nNames * 3), nameTot = new Int32Array(nNames);
+  const cCount = new Int32Array(nC);
+  const dirty = { map: true, counties: true, names: true, terms: true };
+
+  function recompute() {
+    mark.fill(0); smask.fill(0); termSrc.fill(0); nameSrc.fill(0); cCount.fill(0);
+    cardCount[0] = cardCount[1] = cardCount[2] = 0;
+    const termOk = new Uint8Array(nT);
+    state.terms.forEach(t => { termOk[t] = 1; });
+    const srcOk = state.src;
+    for (let r = 0; r < nR; r++) {
+      const p = rPlace[r], n = pName[p], t = nameTerm[n];
+      if (!termOk[t]) continue;
+      if (state.pop && !rPop[r]) continue;
+      const s = rSrc[r];
+      cardCount[s]++;
+      if (!srcOk[s]) continue;
+      mark[p] = 1; smask[p] |= 1 << s;
+      termSrc[t * 3 + s]++; nameSrc[n * 3 + s]++;
+    }
+    for (let p = 0; p < nP; p++) if (mark[p] && pCounty[p] >= 0) cCount[pCounty[p]]++;
+  }
+
+  // ---------- cards and sidebar ----------
+  const descFor = s => {
+    const pop = state.pop;
+    if (s === 0) return "US Census Bureau incorporated places and Census Designated Places (2020). Always populated places.";
+    if (s === 1) return pop ? "USGS federal names, limited to populated places and Census designated places."
+      : "USGS federal names for towns, schools, creeks, summits, lakes and more, including historical features.";
+    return pop ? "Crowdsourced OpenStreetMap names, limited to cities, towns, villages and hamlets."
+      : "Crowdsourced OpenStreetMap names: places, natural features, waterways and boundaries (no roads).";
+  };
+  $("#cards").innerHTML = SRC.map((s, i) =>
+    `<div class="card" id="card${i}" style="--c:${COL[i]}">
+       <label class="card-head"><input type="checkbox" data-src="${i}" checked> ${s}</label>
+       <div class="big"><span class="num" id="num${i}"></span> <span class="muted">of ${fmt(total[i])} places</span></div>
+       <p class="desc" id="desc${i}"></p>
+     </div>`).join("");
+  function renderCards() {
+    for (let i = 0; i < 3; i++) {
+      $("#num" + i).textContent = fmt(cardCount[i]);
+      $("#desc" + i).textContent = descFor(i);
+      $("#card" + i).classList.toggle("off", !state.src[i]);
+    }
+  }
+  $("#cards").addEventListener("change", e => {
+    const i = e.target.dataset.src;
+    if (i === undefined) return;
+    state.src[+i] = e.target.checked;
+    refresh();
+  });
+
+  function renderTermList() {
+    const box = $("#termlist");
+    box.innerHTML = terms.map((t, i) => (state.nsfw || !nsfw.has(t)) ?
+      `<label class="chk"><input type="checkbox" data-t="${i}" ${state.terms.has(i) ? "checked" : ""}><span class="tname">${esc(t)}</span><span class="muted">${fmt(termAll[i])}</span></label>` : "").join("");
+  }
+  $("#termlist").addEventListener("change", e => {
+    const i = e.target.dataset.t;
+    if (i === undefined) return;
+    if (e.target.checked) state.terms.add(+i); else state.terms.delete(+i);
+    refresh();
+  });
+  $("#t-all").addEventListener("click", () => {
+    terms.forEach((t, i) => { if (state.nsfw || !nsfw.has(t)) state.terms.add(i); });
+    renderTermList(); refresh();
+  });
+  $("#t-none").addEventListener("click", () => { state.terms.clear(); renderTermList(); refresh(); });
+  $("#pop").addEventListener("change", e => { state.pop = e.target.checked; refresh(); });
+  $("#nsfw").addEventListener("change", e => {
+    state.nsfw = e.target.checked;
+    terms.forEach((t, i) => { if (nsfw.has(t)) { if (state.nsfw) state.terms.add(i); else state.terms.delete(i); } });
+    renderTermList(); refresh();
+  });
+
+  // ---------- map ----------
+  const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+  const ESRI_ATTR = "Tiles &copy; Esri";
+  let map, heat, ptsLayer, canvasR;
+  const MAXP = 6000;
+
+  function initMap() {
+    if (map) return;
+    map = L.map("map", { preferCanvas: true }).setView([38, -96], 4);
+    L.tileLayer(ESRI, { maxZoom: 16, attribution: ESRI_ATTR }).addTo(map);
+    heat = L.heatLayer([], { radius: 15, blur: 20, minOpacity: 0.05 });
+    ptsLayer = L.layerGroup().addTo(map);
+    canvasR = L.canvas({ padding: 0.5 });
+    map.on("moveend zoomend", debounce(() => { if (state.tab === "map") drawMap(); }, 60));
+  }
+
+  function drawMap() {
+    const b = map.getBounds().pad(0.3), z = map.getZoom();
+    const w = b.getWest(), e = b.getEast(), s = b.getSouth(), n = b.getNorth();
+    // heatmap: bin places into ~10 px cells so it stays fast at any zoom
+    if (state.heat) {
+      const size = 360 / (256 * Math.pow(2, z)) * 10;
+      const cells = new Map(), sx = [], sy = [], ws = [];
+      for (let p = 0; p < nP; p++) {
+        if (!mark[p]) continue;
+        const lo = pLon[p], la = pLat[p];
+        if (lo < w || lo > e || la < s || la > n) continue;
+        const key = Math.floor((lo + 180) / size) * 1048576 + Math.floor((la + 90) / size);
+        let i = cells.get(key);
+        if (i === undefined) { i = ws.length; cells.set(key, i); sx.push(0); sy.push(0); ws.push(0); }
+        sx[i] += lo; sy[i] += la; ws[i]++;
+      }
+      const pts = new Array(ws.length);
+      for (let i = 0; i < ws.length; i++) pts[i] = [sy[i] / ws[i], sx[i] / ws[i], ws[i]];
+      const sorted = ws.slice().sort((a, b) => a - b);
+      const p99 = sorted.length ? sorted[Math.floor(sorted.length * 0.99)] : 1;
+      heat.setOptions({ max: Math.max(3, p99 * 1.5), maxZoom: z });
+      heat.setLatLngs(pts);
+      if (!map.hasLayer(heat)) heat.addTo(map);
+    } else if (map.hasLayer(heat)) {
+      map.removeLayer(heat);
+    }
+    // points: only when few enough are in view
+    ptsLayer.clearLayers();
+    const note = $("#mapnote");
+    note.hidden = true;
+    if (state.pts) {
+      const vb = map.getBounds(), list = [];
+      for (let p = 0; p < nP && list.length <= MAXP; p++) {
+        if (!mark[p]) continue;
+        if (pLon[p] < vb.getWest() || pLon[p] > vb.getEast() || pLat[p] < vb.getSouth() || pLat[p] > vb.getNorth()) continue;
+        list.push(p);
+      }
+      if (list.length > MAXP) {
+        note.textContent = "Zoom in to see individual places (more than " + fmt(MAXP) + " in view)";
+        note.hidden = false;
+      } else {
+        for (const p of list) {
+          const gz = SRC.filter((_, i) => smask[p] & (1 << i)).join(" + ");
+          L.circleMarker([pLat[p], pLon[p]], { renderer: canvasR, radius: 3, stroke: false, fillColor: "#444", fillOpacity: 0.9 })
+            .bindTooltip(esc(names[pName[p]]) + " (" + gz + ")").addTo(ptsLayer);
+        }
+      }
+    }
+  }
+  function renderMap() { initMap(); map.invalidateSize(); drawMap(); }
+  $("#l-heat").addEventListener("change", e => { state.heat = e.target.checked; drawMap(); });
+  $("#l-pts").addEventListener("change", e => { state.pts = e.target.checked; drawMap(); });
+
+  // ---------- counties ----------
+  const PAL = ["#ffffb2", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#b10026"];
+  let cmap, cLayer, cLegend;
+  const cValue = new Float64Array(nC);
+  let breaks = [0, 1];
+
+  function initCounties() {
+    if (cmap) return;
+    cmap = L.map("cmap", { preferCanvas: true }).setView([38, -96], 4);
+    L.tileLayer(ESRI, { maxZoom: 16, attribution: ESRI_ATTR }).addTo(cmap);
+    cLayer = L.geoJSON(G, {
+      renderer: L.canvas(),
+      style: () => ({ weight: 0.3, color: "#fff", fillOpacity: 0.85, fillColor: "#e5e7eb" }),
+      onEachFeature: (f, l) => l.bindTooltip(() => {
+        const i = f.properties._i;
+        if (i === undefined) return esc(f.properties.label || "");
+        const v = cValue[i];
+        return "<b>" + esc(cLabel[i]) + "</b><br>" + fmt(cCount[i]) + " matching places<br>" + (isNaN(v) ? "not enough data" : fmtV(v));
+      }, { sticky: true })
+    }).addTo(cmap);
+    cLegend = L.control({ position: "bottomright" });
+    cLegend.onAdd = () => { const d = L.DomUtil.create("div", "legend"); d.id = "clegend"; return d; };
+    cLegend.addTo(cmap);
+  }
+  const unitName = () => ({ names: "Per 1,000 place names", pop: "Per 100,000 residents", count: "Matching places" })[state.metric];
+  const fmtV = v => state.metric === "count" ? fmt(v) : v.toFixed(2);
+  function quantile(a, p) { const h = (a.length - 1) * p, lo = Math.floor(h), hi = Math.ceil(h); return a[lo] + (a[hi] - a[lo]) * (h - lo); }
+  const colorOf = v => {
+    const bins = breaks.length - 1;
+    let i = bins - 1;
+    for (let k = 0; k < bins; k++) if (v < breaks[k + 1]) { i = k; break; }
+    return PAL[bins === 1 ? 3 : Math.round(i * 6 / (bins - 1))];
+  };
+
+  function renderCounties() {
+    initCounties(); cmap.invalidateSize();
+    const sel = state.src, valid = [];
+    for (let i = 0; i < nC; i++) {
+      let tot = 0;
+      for (let s = 0; s < 3; s++) if (sel[s]) tot += cTot[i * 3 + s];
+      const n = cCount[i];
+      if (cPop[i] > 0 && tot > 0) {
+        cValue[i] = state.metric === "names" ? n / (tot / 1000) : state.metric === "pop" ? n / (cPop[i] / 1e5) : n;
+        valid.push(i);
+      } else cValue[i] = NaN;
+    }
+    const vals = valid.map(i => cValue[i]).sort((a, b) => a - b);
+    if (vals.length) {
+      const q = [];
+      for (let k = 0; k <= 7; k++) q.push(quantile(vals, k / 7));
+      breaks = q.filter((v, k) => k === 0 || v > q[k - 1]);
+      if (breaks.length < 2) breaks = [breaks[0], breaks[0] + 1];
+    } else breaks = [0, 1];
+    cLayer.eachLayer(l => {
+      const i = l.feature.properties._i;
+      const v = i === undefined ? NaN : cValue[i];
+      l.setStyle({ fillColor: isNaN(v) ? "#e5e7eb" : colorOf(v) });
+    });
+    // legend
+    const bins = breaks.length - 1;
+    let lg = "<b>" + unitName() + "</b>";
+    if (vals.length) {
+      for (let k = 0; k < bins; k++) {
+        const col = PAL[bins === 1 ? 3 : Math.round(k * 6 / (bins - 1))];
+        lg += `<div><i style="background:${col}"></i>${fmtV(breaks[k])} to ${fmtV(breaks[k + 1])}</div>`;
+      }
+    }
+    lg += '<div><i style="background:#e5e7eb"></i>Not enough data</div>';
+    $("#clegend").innerHTML = lg;
+    // top 20
+    valid.sort((a, b) => cValue[b] - cValue[a] || cCount[b] - cCount[a]);
+    const top = valid.slice(0, 20), max = top.length ? cValue[top[0]] || 1 : 1;
+    $("#ctop").innerHTML = '<h3>Buttiest counties</h3><p>' + unitName() + '. Numbers in the bars are matching places.</p>' +
+      (top.length ? '<div class="t20">' + top.map(i =>
+        `<div class="lab" title="${esc(cLabel[i])}">${esc(cLabel[i])}</div>
+         <div><div class="bar" style="width:max(2.4rem, ${cValue[i] / max * 100}%)">${fmt(cCount[i])}</div></div>
+         <div class="val">${fmtV(cValue[i])}</div>`).join("") + "</div>"
+        : '<div class="empty">Tick at least one gazetteer and one term.</div>');
+  }
+  $("#metric").addEventListener("change", e => { state.metric = e.target.value; renderCounties(); });
+
+  // ---------- names table ----------
+  let nameLow = null, nameSorted = [], nameView = [];
+  const titleCache = new Map();
+  function title(s) {
+    let t = titleCache.get(s);
+    if (t === undefined) {
+      t = s.toLowerCase().replace(/(^|[\s\-\/(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+      titleCache.set(s, t);
+    }
+    return t;
+  }
+  const cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+  function buildNames() {
+    if (!nameLow) nameLow = names.map(s => s.toLowerCase());
+    const list = [];
+    for (let n = 0; n < nNames; n++) {
+      let t = 0;
+      for (let s = 0; s < 3; s++) if (state.src[s]) t += nameSrc[n * 3 + s];
+      nameTot[n] = t;
+      if (t > 0) list.push(n);
+    }
+    nameSorted = list;
+    sortNames();
+  }
+  function sortNames() {
+    const k = state.sortKey, d = state.sortDir, si = SRC.indexOf(k);
+    nameSorted.sort((a, b) => {
+      let c;
+      if (k === "place") c = cmp(nameLow[a], nameLow[b]);
+      else if (k === "which") c = cmp(nameWhich[a], nameWhich[b]);
+      else if (k === "words") c = nameWords[a] - nameWords[b];
+      else if (k === "total") c = nameTot[a] - nameTot[b];
+      else c = nameSrc[a * 3 + si] - nameSrc[b * 3 + si];
+      if (c) return c * d;
+      c = nameTot[b] - nameTot[a];
+      return c || cmp(nameLow[a], nameLow[b]);
+    });
+    filterNames();
+  }
+  function filterNames() {
+    const q = state.q.trim().toLowerCase();
+    nameView = q ? nameSorted.filter(n => nameLow[n].includes(q) || nameWhich[n].includes(q)) : nameSorted;
+    state.page = 0;
+    drawNames();
+  }
+  function drawNames() {
+    const cols = [["place", "Place", false], ["words", "Words", true], ["which", "Which words", false]];
+    SRC.forEach((s, i) => { if (state.src[i]) cols.push([s, s, true]); });
+    cols.push(["total", "Total", true]);
+    const head = "<thead><tr>" + cols.map(([k, l, num]) =>
+      `<th data-k="${k}" class="${num ? "n" : ""}" aria-sort="${state.sortKey === k ? (state.sortDir > 0 ? "ascending" : "descending") : "none"}">${l}</th>`).join("") + "</tr></thead>";
+    const ps = state.pageSize, pages = Math.max(1, Math.ceil(nameView.length / ps));
+    state.page = Math.min(state.page, pages - 1);
+    const from = state.page * ps, rows = nameView.slice(from, from + ps);
+    const body = "<tbody>" + rows.map(n =>
+      "<tr><td>" + esc(title(names[n])) + '</td><td class="n">' + nameWords[n] + "</td><td>" + esc(nameWhich[n]) + "</td>" +
+      SRC.map((s, i) => state.src[i] ? '<td class="n">' + fmt(nameSrc[n * 3 + i]) + "</td>" : "").join("") +
+      '<td class="n">' + fmt(nameTot[n]) + "</td></tr>").join("") + "</tbody>";
+    $("#ntable").innerHTML = head + body;
+    $("#pinfo").textContent = nameView.length ?
+      "Showing " + fmt(from + 1) + " to " + fmt(from + rows.length) + " of " + fmt(nameView.length) + " names" : "No names match";
+    $("#p-first").disabled = $("#p-prev").disabled = state.page === 0;
+    $("#p-next").disabled = $("#p-last").disabled = state.page >= pages - 1;
+  }
+  function renderNames() { buildNames(); }
+  $("#ntable").addEventListener("click", e => {
+    const th = e.target.closest("th");
+    if (!th) return;
+    const k = th.dataset.k;
+    if (state.sortKey === k) state.sortDir *= -1;
+    else { state.sortKey = k; state.sortDir = (k === "place" || k === "which") ? 1 : -1; }
+    sortNames();
+  });
+  $("#nq").addEventListener("input", debounce(e => { state.q = e.target.value; filterNames(); }, 150));
+  $("#psize").addEventListener("change", e => { state.pageSize = +e.target.value; state.page = 0; drawNames(); });
+  $("#p-first").addEventListener("click", () => { state.page = 0; drawNames(); });
+  $("#p-prev").addEventListener("click", () => { state.page--; drawNames(); });
+  $("#p-next").addEventListener("click", () => { state.page++; drawNames(); });
+  $("#p-last").addEventListener("click", () => { state.page = 1e9; drawNames(); });
+
+  // ---------- terms chart ----------
+  function renderTerms() {
+    $("#tlegend").innerHTML = SRC.map((s, i) => state.src[i] ? `<span><i style="background:${COL[i]}"></i>${s}</span>` : "").join("");
+    const rows = [];
+    for (let t = 0; t < nT; t++) {
+      let tot = 0;
+      for (let s = 0; s < 3; s++) if (state.src[s]) tot += termSrc[t * 3 + s];
+      if (tot > 0) rows.push({ t, tot });
+    }
+    rows.sort((a, b) => b.tot - a.tot);
+    if (!rows.length) { $("#bars").innerHTML = '<div class="empty">Nothing matches the current filters. Tick at least one gazetteer and one term.</div>'; return; }
+    const max = rows[0].tot;
+    $("#bars").innerHTML = rows.map(r => {
+      const segs = SRC.map((s, i) => {
+        const c = state.src[i] ? termSrc[r.t * 3 + i] : 0;
+        return c ? `<span style="flex:${c};background:${COL[i]}" title="${s}: ${fmt(c)}"></span>` : "";
+      }).join("");
+      return `<div class="brow"><div class="bl">${esc(terms[r.t])}</div><div class="btrack"><div class="bfill" style="width:${r.tot / max * 100}%">${segs}</div></div><div class="bv">${fmt(r.tot)}</div></div>`;
+    }).join("");
+  }
+
+  // ---------- tabs ----------
+  const renderers = { map: renderMap, counties: renderCounties, names: renderNames, terms: renderTerms };
+  function renderActive() {
+    const t = state.tab;
+    if (renderers[t] && dirty[t]) { dirty[t] = false; renderers[t](); }
+  }
+  function showTab(t) {
+    state.tab = t;
+    $$("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+    $$(".pane").forEach(p => { p.hidden = p.id !== "pane-" + t; });
+    renderActive();
+    if (t === "map" && map) setTimeout(() => map.invalidateSize(), 0);
+    if (t === "counties" && cmap) setTimeout(() => cmap.invalidateSize(), 0);
+  }
+  $("#tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) showTab(b.dataset.tab); });
+
+  function refresh() {
+    recompute();
+    renderCards();
+    dirty.map = dirty.counties = dirty.names = dirty.terms = true;
+    renderActive();
+  }
+
+  // ---------- CSV ----------
+  $("#dl").addEventListener("click", () => {
+    const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+    const out = ["name,lon,lat,term,gazetteers,county_geoid"];
+    for (let p = 0; p < nP; p++) {
+      if (!mark[p]) continue;
+      const n = pName[p];
+      out.push([q(names[n]), pLon[p].toFixed(4), pLat[p].toFixed(4), q(terms[nameTerm[n]]),
+        q(SRC.filter((_, i) => smask[p] & (1 << i)).join(" + ")), pCounty[p] >= 0 ? q(geoid[pCounty[p]]) : ""].join(","));
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([out.join("\n")], { type: "text/csv" }));
+    a.download = "buttmap_filtered.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // ---------- about summary ----------
+  let uniq = [0, 0, 0];
+  for (let n = 0; n < nNames; n++) for (let s = 0; s < 3; s++) if (nameAll[n * 3 + s] > 0) uniq[s]++;
+  $("#summary").innerHTML = "<table><thead><tr><th>Gazetteer</th><th class='n'>Places</th><th class='n'>Populated places</th><th class='n'>Unique names</th></tr></thead><tbody>" +
+    SRC.map((s, i) => `<tr><td>${s}</td><td class="n">${fmt(total[i])}</td><td class="n">${fmt(popTotal[i])}</td><td class="n">${fmt(uniq[i])}</td></tr>`).join("") + "</tbody></table>";
+
+  // ---------- go ----------
+  renderTermList();
+  recompute();
+  renderCards();
+  $("#loading").hidden = true;
+  $("#app").hidden = false;
+  showTab("map");
+})();
+</script>
+</body>
+</html>
