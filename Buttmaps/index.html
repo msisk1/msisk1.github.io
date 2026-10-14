@@ -108,8 +108,8 @@ table.data tbody tr:hover{background:#f7f9fc}
 </head>
 <body>
 <header class="top">
-  <h1>Buttmap</h1>
-  <p>Place names containing butt-related words, compared across three US gazetteers</p>
+  <h1>Buttmap 2.0</h1>
+  <p>Investigating the fundamental places across three gazetteers</p>
 </header>
 
 <div id="loading" class="loading">Loading data...</div>
@@ -121,9 +121,9 @@ table.data tbody tr:hover{background:#f7f9fc}
       <span><button id="t-all" type="button">All</button><button id="t-none" type="button">None</button></span>
     </div>
     <div id="termlist" class="termlist"></div>
-    <label class="switch"><input type="checkbox" id="pop"><span class="track"></span><span>Populated places only (like Census)</span></label>
+    <label class="switch"><input type="checkbox" id="pop"><span class="track"></span><span>Populated places only (makes GNIS and OSM match the Census)</span></label>
     <label class="switch"><input type="checkbox" id="nsfw"><span class="track"></span><span>Include NSFW terms</span></label>
-    <p class="hint">Tick or untick a gazetteer card to include or exclude it.</p>
+    <p class="hint">Check or uncheck the box near a source to include or exclude it.</p>
     <button class="btn" id="dl" type="button">Download filtered CSV</button>
   </aside>
 
@@ -131,11 +131,11 @@ table.data tbody tr:hover{background:#f7f9fc}
     <section class="cards" id="cards"></section>
     <div class="panel">
       <div class="tabs" role="tablist" id="tabs">
-        <button role="tab" data-tab="map" aria-selected="true">Map</button>
-        <button role="tab" data-tab="counties" aria-selected="false">Counties</button>
-        <button role="tab" data-tab="names" aria-selected="false">Names</button>
-        <button role="tab" data-tab="terms" aria-selected="false">Terms</button>
-        <button role="tab" data-tab="about" aria-selected="false">About</button>
+        <button role="tab" data-tab="map" aria-selected="true">Density Map</button>
+        <button role="tab" data-tab="counties" aria-selected="false">Per Counties</button>
+        <button role="tab" data-tab="names" aria-selected="false">All places</button>
+        <button role="tab" data-tab="terms" aria-selected="false">Individual terms</button>
+        <button role="tab" data-tab="about" aria-selected="false">More Information</button>
       </div>
 
       <div class="pane" id="pane-map">
@@ -164,7 +164,7 @@ table.data tbody tr:hover{background:#f7f9fc}
       </div>
 
       <div class="pane" id="pane-names" hidden>
-        <p class="muted" style="margin-top:0">Every matching place name, ranked by how many butt words it contains, then by how many places share it. Click a column to sort. Counts are places in each gazetteer.</p>
+        <p class="muted" style="margin-top:0">Every matching place name, ranked by how many butt words it contains, then by how many places share it. Click a column to sort. Counts are places with that name in each gazetteer.</p>
         <div class="row">
           <input type="search" id="nq" placeholder="Search names or butt words" aria-label="Search names or butt words">
           <label>Rows <select id="psize"><option>25</option><option>50</option><option>100</option></select></label>
@@ -189,7 +189,7 @@ table.data tbody tr:hover{background:#f7f9fc}
       <div class="pane" id="pane-about" hidden>
         <div class="about">
           <h4>What this is</h4>
-          <p>Place names that contain a butt-related term, compared across three US gazetteers. A gazetteer is a directory of place names with coordinates. Every place here matched a list of about 20 terms. The data were prepared in R and this page runs entirely in your browser.</p>
+          <p>Place names that contain a butt-related term, compared across three US gazetteers. A gazetteer is a directory of place names with coordinates. Every place here matched a list of about 20 terms. The data were prepared in R as a shinydashboard and conveted to raw html using claude.</p>
 
           <h4>Data sources</h4>
           <table>
@@ -216,9 +216,9 @@ table.data tbody tr:hover{background:#f7f9fc}
 
           <h4>How it works</h4>
           <ul>
-            <li>The three cards at the top are also the gazetteer checkboxes. Each shows the places displayed after your filters, out of the total matching places in that gazetteer.</li>
-            <li>The Terms box starts with every term selected. Untick a term to drop it everywhere.</li>
-            <li><b>Populated places only</b> keeps the Census places, GNIS populated places and Census designated places, and OSM cities, towns, villages and hamlets. This makes GNIS and OSM comparable to Census by dropping creeks, summits and other natural features.</li>
+            <li>The three cards at the top are also the gazetteer checkboxes. Each shows the places displayed, after any filters, out of the total matching places in that gazetteer.</li>
+            <li>The Terms box starts with every term selected. Uncheck a term to drop it everywhere.</li>
+            <li><b>Populated places only</b> keeps the Census places, GNIS populated places and Census designated places, and OSM cities, towns, villages and hamlets. This makes GNIS and OSM comparable to the Census by dropping the names of natural features.</li>
             <li>The Terms filter and the Terms chart count each name once, under the first butt word found in it. The Names tab shows every butt word in a name and ranks names by how many they contain.</li>
             <li>Repeats: the same real place can appear several times in one gazetteer, especially OSM. Rows with the same name within about 5 km are counted once. The map shows one point per place, merging the same place across the checked gazetteers.</li>
             <li>Counties: the Counties tab colors each county by matching places per 1,000 place names in that county, per 100,000 residents, or as a raw count. Counties with very few names or people can swing widely.</li>
@@ -226,7 +226,7 @@ table.data tbody tr:hover{background:#f7f9fc}
 
           <h4>Summary (all terms, before filters)</h4>
           <div id="summary"></div>
-          <p class="muted">The NSFW switch controls the terms flagged as NSFW when the data were prepared.</p>
+          <p class="muted">The NSFW switch controls the terms flagged as NSFW when the data were prepared. It is just ass. That's the only one.</p>
         </div>
       </div>
     </div>
