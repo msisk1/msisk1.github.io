@@ -21,11 +21,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-ap
 .loading.err{color:#b42318;max-width:42rem;margin:auto;text-align:left}
 .loading code{background:#eef0f3;padding:1px 5px;border-radius:4px}
 .layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;padding:16px;max-width:1500px;margin:0 auto}
-.side{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;align-self:start;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+.side{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;align-self:stretch;display:flex;flex-direction:column;min-height:0}
 .side h2{font-size:.95rem;margin:0}
 .side-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .side-head button{font:inherit;font-size:.8rem;border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;margin-left:4px}
-.termlist{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 8px;margin-bottom:14px}
+.termlist{flex:1 1 0;min-height:160px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 8px;margin-bottom:14px}
 .chk{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer}
 .chk .tname{flex:1}
 .muted{color:var(--muted);font-size:.85rem}
@@ -98,10 +98,10 @@ table.data tbody tr:hover{background:#f7f9fc}
 .about li{margin:4px 0}
 @media (max-width:900px){
   .layout{grid-template-columns:minmax(0,1fr)}
-  .side{position:static;max-height:none}
+  .side{position:static}
   .cards{grid-template-columns:minmax(0,1fr)}
   .cgrid{grid-template-columns:minmax(0,1fr)}
-  .termlist{max-height:180px}
+  .termlist{flex:none;max-height:180px}
   .brow{grid-template-columns:5rem 1fr 4rem}
 }
 </style>
@@ -109,7 +109,7 @@ table.data tbody tr:hover{background:#f7f9fc}
 <body>
 <header class="top">
   <h1>Buttmap 2.0</h1>
-  <p>Investigating the fundamental places across three gazetteers</p>
+  <p>Getting to the bottom of place names: A fundamental comparison of US Gazetteers</p>
 </header>
 
 <div id="loading" class="loading">Loading data...</div>
